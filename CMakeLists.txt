@@ -1,0 +1,61 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+PROJECT(hal-backend-ml CXX)
+INCLUDE(GNUInstallDirs)
+
+option(ENABLE_VIVANTE "Enable vivante backend" OFF)
+option(ENABLE_SNPE "Enable snpe backend" OFF)
+
+SET(HAL_LIBDIR ${CMAKE_HAL_LIBDIR_PREFIX})
+SET(HAL_LICENSEDIR ${CMAKE_HAL_LICENSEDIR_PREFIX})
+
+INCLUDE(FindPkgConfig)
+pkg_check_modules(hal_rootstrap_pkgs REQUIRED
+  hal-rootstrap
+)
+
+FOREACH(flag ${hal_rootstrap_pkgs_CFLAGS})
+         SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag}")
+ENDFOREACH(flag)
+
+# Common Options
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -O2 -fomit-frame-pointer -std=gnu++0x")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fdata-sections -ffunction-sections")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+
+SET(UTIL_SRCS
+  ${PROJECT_SOURCE_DIR}/src/hal-backend-ml-util.cc
+)
+
+# pass-through
+SET(PASS_SRCS
+  ${PROJECT_SOURCE_DIR}/src/hal-backend-ml-test-passthrough.cc
+)
+
+SET(PASS_LIBRARY_NAME "hal-backend-ml-pass")
+ADD_LIBRARY(${PASS_LIBRARY_NAME} SHARED ${PASS_SRCS} ${UTIL_SRCS})
+TARGET_LINK_LIBRARIES(${PASS_LIBRARY_NAME} ${hal_rootstrap_pkgs_LDFLAGS})
+INSTALL(TARGETS ${PASS_LIBRARY_NAME} DESTINATION ${HAL_LIBDIR} COMPONENT RuntimeLibraries)
+
+# vivante
+IF(ENABLE_VIVANTE)
+SET(VIVANTE_SRCS
+${PROJECT_SOURCE_DIR}/src/hal-backend-ml-vivante.cc
+)
+
+SET(VIVANTE_LIBRARY_NAME "hal-backend-ml-vivante")
+ADD_LIBRARY(${VIVANTE_LIBRARY_NAME} SHARED ${VIVANTE_SRCS} ${UTIL_SRCS})
+TARGET_LINK_LIBRARIES(${VIVANTE_LIBRARY_NAME} ${hal_rootstrap_pkgs_LDFLAGS})
+INSTALL(TARGETS ${VIVANTE_LIBRARY_NAME} DESTINATION ${HAL_LIBDIR} COMPONENT RuntimeLibraries)
+ENDIF()
+
+# snpe
+IF(ENABLE_SNPE)
+SET(SNPE_SRCS
+${PROJECT_SOURCE_DIR}/src/hal-backend-ml-snpe.cc
+)
+
+SET(SNPE_LIBRARY_NAME "hal-backend-ml-snpe")
+ADD_LIBRARY(${SNPE_LIBRARY_NAME} SHARED ${SNPE_SRCS} ${UTIL_SRCS})
+TARGET_LINK_LIBRARIES(${SNPE_LIBRARY_NAME} ${hal_rootstrap_pkgs_LDFLAGS})
+INSTALL(TARGETS ${SNPE_LIBRARY_NAME} DESTINATION ${HAL_LIBDIR} COMPONENT RuntimeLibraries)
+ENDIF()
