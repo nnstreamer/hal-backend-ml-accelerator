@@ -160,8 +160,7 @@ static int ml_vivante_invoke(void *backend_private, const GstTensorMemory *input
     vivante->result_vsi_nn_CopyDataToTensor (vivante->graph, tensor, (uint8_t *) input[i].data);
   }
 
-  g_warning ("skip rungraph.. 됐다 치고"); g_usleep (1000 * 100);
-  // vivante->result_vsi_nn_RunGraph (vivante->graph);
+  vivante->result_vsi_nn_RunGraph (vivante->graph);
 
   if (vivante->postProcess)
     vivante->postProcessFunc (vivante->graph);
