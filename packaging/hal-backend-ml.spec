@@ -73,11 +73,6 @@ make %{?_smp_mflags}
 %postun
 /sbin/ldconfig
 
-%files
-%manifest packaging/hal-backend-ml.manifest
-%license LICENSE
-%{_hal_libdir}/libhal-backend-ml-*.so*
-
 %if 0%{?vivante_support}
 %files vivante
 %manifest packaging/hal-backend-ml.manifest

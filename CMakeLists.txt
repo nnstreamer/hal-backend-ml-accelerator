@@ -26,16 +26,6 @@ SET(UTIL_SRCS
   ${PROJECT_SOURCE_DIR}/src/hal-backend-ml-util.cc
 )
 
-# pass-through
-SET(PASS_SRCS
-  ${PROJECT_SOURCE_DIR}/src/hal-backend-ml-test-passthrough.cc
-)
-
-SET(PASS_LIBRARY_NAME "hal-backend-ml-pass")
-ADD_LIBRARY(${PASS_LIBRARY_NAME} SHARED ${PASS_SRCS} ${UTIL_SRCS})
-TARGET_LINK_LIBRARIES(${PASS_LIBRARY_NAME} ${hal_rootstrap_pkgs_LDFLAGS})
-INSTALL(TARGETS ${PASS_LIBRARY_NAME} DESTINATION ${HAL_LIBDIR} COMPONENT RuntimeLibraries)
-
 # vivante
 IF(ENABLE_VIVANTE)
 SET(VIVANTE_SRCS
