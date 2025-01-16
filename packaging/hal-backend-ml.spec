@@ -9,7 +9,6 @@ Source0:    %{name}-%{version}.tar.gz
 BuildRequires:  cmake
 BuildRequires:  pkgconfig(hal-rootstrap)
 
-
 # For DA
 %if 0%{?_with_da_profile}
 
@@ -27,6 +26,9 @@ BuildRequires:  snpe-devel
 %endif
 
 %endif # For DA
+
+# Let's disable rootstrap checker for now. It complains that ovxlib, amlogic-vsi-npu-sdk, snpe-devel should be not used.
+%define disable_hal_rootstrap_checker 1
 
 
 %description

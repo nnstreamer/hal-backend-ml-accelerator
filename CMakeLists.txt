@@ -9,13 +9,6 @@ SET(HAL_LIBDIR ${CMAKE_HAL_LIBDIR_PREFIX})
 SET(HAL_LICENSEDIR ${CMAKE_HAL_LICENSEDIR_PREFIX})
 
 INCLUDE(FindPkgConfig)
-pkg_check_modules(hal_rootstrap_pkgs REQUIRED
-  hal-rootstrap
-)
-
-FOREACH(flag ${hal_rootstrap_pkgs_CFLAGS})
-         SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag}")
-ENDFOREACH(flag)
 
 # Common Options
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -O2 -fomit-frame-pointer -std=gnu++0x")
@@ -33,19 +26,40 @@ ${PROJECT_SOURCE_DIR}/src/hal-backend-ml-vivante.cc
 )
 
 SET(VIVANTE_LIBRARY_NAME "hal-backend-ml-vivante")
+pkg_check_modules(vivante_build_dep_pkgs REQUIRED
+  hal-rootstrap
+  ovxlib
+  amlogic-vsi-npu-sdk
+)
+
+FOREACH(flag ${vivante_build_dep_pkgs_CFLAGS})
+  SET(EXTRA_CFLAGS "${CMAKE_C_FLAGS} ${flag}")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag}")
+ENDFOREACH(flag)
+
 ADD_LIBRARY(${VIVANTE_LIBRARY_NAME} SHARED ${VIVANTE_SRCS} ${UTIL_SRCS})
-TARGET_LINK_LIBRARIES(${VIVANTE_LIBRARY_NAME} ${hal_rootstrap_pkgs_LDFLAGS})
+TARGET_LINK_LIBRARIES(${VIVANTE_LIBRARY_NAME} ${vivante_build_dep_pkgs_LDFLAGS})
 INSTALL(TARGETS ${VIVANTE_LIBRARY_NAME} DESTINATION ${HAL_LIBDIR} COMPONENT RuntimeLibraries)
 ENDIF()
 
 # snpe
 IF(ENABLE_SNPE)
+pkg_check_modules(snpe_build_dep_pkgs REQUIRED
+  hal-rootstrap
+  snpe
+)
+
+FOREACH(flag ${snpe_build_dep_pkgs_CFLAGS})
+  SET(EXTRA_CFLAGS "${CMAKE_C_FLAGS} ${flag}")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag}")
+ENDFOREACH(flag)
+
 SET(SNPE_SRCS
 ${PROJECT_SOURCE_DIR}/src/hal-backend-ml-snpe.cc
 )
 
 SET(SNPE_LIBRARY_NAME "hal-backend-ml-snpe")
 ADD_LIBRARY(${SNPE_LIBRARY_NAME} SHARED ${SNPE_SRCS} ${UTIL_SRCS})
-TARGET_LINK_LIBRARIES(${SNPE_LIBRARY_NAME} ${hal_rootstrap_pkgs_LDFLAGS})
+TARGET_LINK_LIBRARIES(${SNPE_LIBRARY_NAME} ${snpe_build_dep_pkgs_LDFLAGS})
 INSTALL(TARGETS ${SNPE_LIBRARY_NAME} DESTINATION ${HAL_LIBDIR} COMPONENT RuntimeLibraries)
 ENDIF()
