@@ -88,8 +88,9 @@ static int ml_vivante_deinit(void *backend_private)
   return HAL_ML_ERROR_NONE;
 }
 
-static int ml_vivante_configure_instance(void *backend_private, const GstTensorFilterProperties *prop)
+static int ml_vivante_configure_instance(void *backend_private, const void *prop_)
 {
+  const GstTensorFilterProperties *prop = (const GstTensorFilterProperties *) prop_;
   vivante_handle_s *vivante = (vivante_handle_s *) backend_private;
   if (!vivante) {
     g_error ("[vivante backend] ml_vivante_configure_instance called with invalid backend_private");
@@ -147,8 +148,10 @@ static int ml_vivante_configure_instance(void *backend_private, const GstTensorF
   return 0;
 }
 
-static int ml_vivante_invoke(void *backend_private, const GstTensorMemory *input, GstTensorMemory *output)
+static int ml_vivante_invoke(void *backend_private, const void *input_, void *output_)
 {
+  const GstTensorMemory *input = (const GstTensorMemory *) input_;
+  GstTensorMemory *output = (GstTensorMemory *) output_;
   vivante_handle_s *vivante = (vivante_handle_s *) backend_private;
   if (!vivante) {
     g_error ("[vivante backend] ml_vivante_invoke called with invalid backend_private");
@@ -173,8 +176,12 @@ static int ml_vivante_invoke(void *backend_private, const GstTensorMemory *input
   return 0;
 }
 
-static int ml_vivante_get_model_info(void *backend_private, model_info_ops ops, GstTensorsInfo *in_info, GstTensorsInfo *out_info)
+static int ml_vivante_get_model_info(void *backend_private, int ops_, void *in_info_, void *out_info_)
 {
+  int ops = (model_info_ops) ops_;
+  GstTensorsInfo *in_info = (GstTensorsInfo *) in_info_;
+  GstTensorsInfo *out_info = (GstTensorsInfo *) out_info_;
+
   vivante_handle_s *vivante = (vivante_handle_s *) backend_private;
   if (!vivante) {
     g_error ("[vivante backend] ml_vivante_get_model_info called with invalid backend_private");
@@ -187,9 +194,12 @@ static int ml_vivante_get_model_info(void *backend_private, model_info_ops ops, 
   return 0;
 }
 
-static int ml_vivante_event_handler(void *backend_private, event_ops ops, GstTensorFilterFrameworkEventData *data)
+static int ml_vivante_event_handler(void *backend_private, int ops_, void *data_)
 {
-  return -ENOENT;
+  int ops = (event_ops) ops_;
+  GstTensorFilterFrameworkEventData *data = (GstTensorFilterFrameworkEventData *) data_;
+
+  return HAL_ML_ERROR_NOT_SUPPORTED;
 }
 
 static int ml_vivante_hal_backend_init(void **data)
