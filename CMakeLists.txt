@@ -63,3 +63,6 @@ ADD_LIBRARY(${SNPE_LIBRARY_NAME} SHARED ${SNPE_SRCS} ${UTIL_SRCS})
 TARGET_LINK_LIBRARIES(${SNPE_LIBRARY_NAME} ${snpe_build_dep_pkgs_LDFLAGS})
 INSTALL(TARGETS ${SNPE_LIBRARY_NAME} DESTINATION ${HAL_LIBDIR} COMPONENT RuntimeLibraries)
 ENDIF()
+
+# Dummy install command when there are no backends deps.
+INSTALL(CODE "message(STATUS \"Performing dummy install actions\")")
