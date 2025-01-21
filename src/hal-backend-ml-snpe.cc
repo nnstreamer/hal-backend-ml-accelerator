@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 
-#include <vector>
-#include <stdexcept>
 #include <glib.h>
+#include <stdexcept>
+#include <vector>
 
 #include <hal-common-interface.h>
 #include <hal-ml-interface.h>
@@ -21,8 +21,7 @@
 #include "hal-backend-ml-util.h"
 
 
-typedef struct _snpe_handle_s
-{
+typedef struct _snpe_handle_s {
   char *model_path;
   GstTensorsInfo inputInfo; /**< Input tensors metadata */
   GstTensorsInfo outputInfo; /**< Output tensors metadata */
@@ -33,7 +32,8 @@ typedef struct _snpe_handle_s
   std::vector<Snpe_IUserBuffer_Handle_t> user_buffers;
 } snpe_handle_s;
 
-static int ml_snpe_init(void **backend_private)
+static int
+ml_snpe_init (void **backend_private)
 {
   snpe_handle_s *snpe = g_new0 (snpe_handle_s, 1);
 
@@ -44,7 +44,8 @@ static int ml_snpe_init(void **backend_private)
   return 0;
 }
 
-static int ml_snpe_deinit(void *backend_private)
+static int
+ml_snpe_deinit (void *backend_private)
 {
   snpe_handle_s *snpe = (snpe_handle_s *) backend_private;
   if (!snpe) {
@@ -77,7 +78,8 @@ static int ml_snpe_deinit(void *backend_private)
   return 0;
 }
 
-static int ml_snpe_configure_instance(void *backend_private, const void *prop_)
+static int
+ml_snpe_configure_instance (void *backend_private, const void *prop_)
 {
   const GstTensorFilterProperties *prop = (const GstTensorFilterProperties *) prop_;
   snpe_handle_s *snpe = (snpe_handle_s *) backend_private;
@@ -324,7 +326,8 @@ static int ml_snpe_configure_instance(void *backend_private, const void *prop_)
     snpe->model_path = g_strdup (prop->model_files[0]);
     container_h = Snpe_DlContainer_Open (snpe->model_path);
     if (!container_h)
-      throw std::runtime_error ("Failed to open the model file " + std::string (snpe->model_path));
+      throw std::runtime_error (
+          "Failed to open the model file " + std::string (snpe->model_path));
 
     /* Build SNPE handle */
     snpebuilder_h = Snpe_SNPEBuilder_Create (container_h);
@@ -405,19 +408,22 @@ static int ml_snpe_configure_instance(void *backend_private, const void *prop_)
   return HAL_ML_ERROR_NONE;
 }
 
-static int ml_snpe_invoke(void *backend_private, const void *input_, void *output_)
+static int
+ml_snpe_invoke (void *backend_private, const void *input_, void *output_)
 {
   const GstTensorMemory *input = (const GstTensorMemory *) input_;
   GstTensorMemory *output = (GstTensorMemory *) output_;
   snpe_handle_s *snpe = (snpe_handle_s *) backend_private;
   for (unsigned int i = 0; i < snpe->inputInfo.num_tensors; i++) {
-    GstTensorInfo *info = gst_tensors_info_get_nth_info (std::addressof (snpe->inputInfo), i);
+    GstTensorInfo *info
+        = gst_tensors_info_get_nth_info (std::addressof (snpe->inputInfo), i);
     auto iub = Snpe_UserBufferMap_GetUserBuffer_Ref (snpe->inputMap_h, info->name);
     Snpe_IUserBuffer_SetBufferAddress (iub, input[i].data);
   }
 
   for (unsigned int i = 0; i < snpe->outputInfo.num_tensors; i++) {
-    GstTensorInfo *info = gst_tensors_info_get_nth_info (std::addressof (snpe->outputInfo), i);
+    GstTensorInfo *info
+        = gst_tensors_info_get_nth_info (std::addressof (snpe->outputInfo), i);
     auto iub = Snpe_UserBufferMap_GetUserBuffer_Ref (snpe->outputMap_h, info->name);
     Snpe_IUserBuffer_SetBufferAddress (iub, output[i].data);
   }
@@ -440,7 +446,8 @@ ml_snpe_get_framework_info (void *backend_private, void *fw_info)
   return HAL_ML_ERROR_NONE;
 }
 
-static int ml_snpe_get_model_info(void *backend_private, int ops_, void *in_info_, void *out_info_)
+static int
+ml_snpe_get_model_info (void *backend_private, int ops_, void *in_info_, void *out_info_)
 {
   int ops = (model_info_ops) ops_;
   GstTensorsInfo *in_info = (GstTensorsInfo *) in_info_;
@@ -456,7 +463,8 @@ static int ml_snpe_get_model_info(void *backend_private, int ops_, void *in_info
   return -2;
 }
 
-static int ml_snpe_event_handler(void *backend_private, int ops_, void *data_)
+static int
+ml_snpe_event_handler (void *backend_private, int ops_, void *data_)
 {
   int ops = (event_ops) ops_;
   GstTensorFilterFrameworkEventData *data = (GstTensorFilterFrameworkEventData *) data_;
@@ -464,7 +472,8 @@ static int ml_snpe_event_handler(void *backend_private, int ops_, void *data_)
   return HAL_ML_ERROR_NOT_SUPPORTED;
 }
 
-static int ml_snpe_hal_backend_init(void **data)
+static int
+ml_snpe_hal_backend_init (void **data)
 {
   hal_backend_ml_funcs *funcs = NULL;
 
@@ -486,9 +495,10 @@ static int ml_snpe_hal_backend_init(void **data)
   return 0;
 }
 
-static int ml_snpe_hal_backend_exit(void *data)
+static int
+ml_snpe_hal_backend_exit (void *data)
 {
-  memset (data, 0x0, sizeof(hal_backend_ml_funcs));
+  memset (data, 0x0, sizeof (hal_backend_ml_funcs));
   return 0;
 }
 

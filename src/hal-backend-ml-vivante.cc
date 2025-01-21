@@ -2,8 +2,8 @@
 
 #include <stdexcept>
 
-#include <glib.h>
 #include <dlfcn.h>
+#include <glib.h>
 
 #include <hal-common-interface.h>
 #include <hal-ml-interface.h>
@@ -13,7 +13,8 @@
 #include "hal-backend-ml-util.h"
 
 
-static tensor_type convert_tensortype (vsi_nn_type_e tensor_type)
+static tensor_type
+convert_tensortype (vsi_nn_type_e tensor_type)
 {
   switch (tensor_type) {
     case VSI_NN_TYPE_INT8:
@@ -38,8 +39,7 @@ static tensor_type convert_tensortype (vsi_nn_type_e tensor_type)
   return _NNS_END;
 }
 
-typedef struct _vivante_handle_s
-{
+typedef struct _vivante_handle_s {
   char *model_path;
   char *so_path;
   GstTensorsInfo inputInfo;
@@ -47,15 +47,17 @@ typedef struct _vivante_handle_s
 
   vsi_nn_graph_t *graph;
   void *handle; /* dlopened model so */
-  vsi_status (*result_vsi_nn_CopyDataToTensor) (vsi_nn_graph_t *, vsi_nn_tensor_t *, uint8_t *);
+  vsi_status (*result_vsi_nn_CopyDataToTensor) (
+      vsi_nn_graph_t *, vsi_nn_tensor_t *, uint8_t *);
   void (*result_vnn_ReleaseNeuralNetwork) (vsi_nn_graph_t *);
   vsi_nn_graph_t *(*result_vnn_CreateNeuralNetwork) (const char *);
   vsi_status (*result_vsi_nn_RunGraph) (vsi_nn_graph_t *);
   int postProcess;
-  vsi_status (*postProcessFunc) (vsi_nn_graph_t * graph);
+  vsi_status (*postProcessFunc) (vsi_nn_graph_t *graph);
 } vivante_handle_s;
 
-static int ml_vivante_init(void **backend_private)
+static int
+ml_vivante_init (void **backend_private)
 {
   vivante_handle_s *vivante = g_new0 (vivante_handle_s, 1);
   gst_tensors_info_init (&vivante->inputInfo);
@@ -64,7 +66,8 @@ static int ml_vivante_init(void **backend_private)
   return 0;
 }
 
-static int ml_vivante_deinit(void *backend_private)
+static int
+ml_vivante_deinit (void *backend_private)
 {
   vivante_handle_s *vivante = (vivante_handle_s *) backend_private;
   if (!vivante) {
@@ -88,7 +91,8 @@ static int ml_vivante_deinit(void *backend_private)
   return HAL_ML_ERROR_NONE;
 }
 
-static int ml_vivante_configure_instance(void *backend_private, const void *prop_)
+static int
+ml_vivante_configure_instance (void *backend_private, const void *prop_)
 {
   const GstTensorFilterProperties *prop = (const GstTensorFilterProperties *) prop_;
   vivante_handle_s *vivante = (vivante_handle_s *) backend_private;
@@ -97,8 +101,8 @@ static int ml_vivante_configure_instance(void *backend_private, const void *prop
     return HAL_ML_ERROR_INVALID_PARAMETER;
   }
 
-  vivante->model_path = g_strdup(prop->model_files[0]);
-  vivante->so_path = g_strdup(prop->model_files[1]);
+  vivante->model_path = g_strdup (prop->model_files[0]);
+  vivante->so_path = g_strdup (prop->model_files[1]);
 
   vivante->handle = dlopen (vivante->so_path, RTLD_NOW);
   if (!vivante->handle) {
@@ -106,16 +110,22 @@ static int ml_vivante_configure_instance(void *backend_private, const void *prop
     return HAL_ML_ERROR_RUNTIME_ERROR;
   }
 
-  vivante->result_vsi_nn_CopyDataToTensor = (vsi_status (*)(vsi_nn_graph_t *, vsi_nn_tensor_t *, uint8_t *)) dlsym(vivante->handle, "vsi_nn_CopyDataToTensor");
-  vivante->result_vnn_ReleaseNeuralNetwork = (void (*)(vsi_nn_graph_t *)) dlsym(vivante->handle, "vnn_ReleaseNeuralNetwork");
-  vivante->result_vnn_CreateNeuralNetwork = (vsi_nn_graph_t *(*)(const char *)) dlsym(vivante->handle, "vnn_CreateNeuralNetwork");
-  vivante->result_vsi_nn_RunGraph = (vsi_status (*)(vsi_nn_graph_t *)) dlsym(vivante->handle, "vsi_nn_RunGraph");
+  vivante->result_vsi_nn_CopyDataToTensor
+      = (vsi_status (*) (vsi_nn_graph_t *, vsi_nn_tensor_t *, uint8_t *)) dlsym (
+          vivante->handle, "vsi_nn_CopyDataToTensor");
+  vivante->result_vnn_ReleaseNeuralNetwork = (void (*) (vsi_nn_graph_t *)) dlsym (
+      vivante->handle, "vnn_ReleaseNeuralNetwork");
+  vivante->result_vnn_CreateNeuralNetwork = (vsi_nn_graph_t * (*) (const char *) )
+      dlsym (vivante->handle, "vnn_CreateNeuralNetwork");
+  vivante->result_vsi_nn_RunGraph
+      = (vsi_status (*) (vsi_nn_graph_t *)) dlsym (vivante->handle, "vsi_nn_RunGraph");
 
   if (vivante->postProcess) {
-    vivante->postProcessFunc = (vsi_status (*)(vsi_nn_graph_t *)) dlsym(vivante->handle, "vnn_PostProcessNeuralNetwork");
+    vivante->postProcessFunc = (vsi_status (*) (vsi_nn_graph_t *)) dlsym (
+        vivante->handle, "vnn_PostProcessNeuralNetwork");
   }
 
-  vivante->graph = vivante->result_vnn_CreateNeuralNetwork(vivante->model_path);
+  vivante->graph = vivante->result_vnn_CreateNeuralNetwork (vivante->model_path);
 
   /* setting input and output tensors info */
   gst_tensors_info_init (&vivante->inputInfo);
@@ -123,7 +133,8 @@ static int ml_vivante_configure_instance(void *backend_private, const void *prop
 
   vivante->inputInfo.num_tensors = vivante->graph->input.num;
   for (unsigned int i = 0; i < vivante->graph->input.num; i++) {
-    vsi_nn_tensor_t *i_tensor = vsi_nn_GetTensor (vivante->graph, vivante->graph->input.tensors[i]);
+    vsi_nn_tensor_t *i_tensor
+        = vsi_nn_GetTensor (vivante->graph, vivante->graph->input.tensors[i]);
     GstTensorInfo *info = gst_tensors_info_get_nth_info (&vivante->inputInfo, i);
 
     info->type = convert_tensortype (i_tensor->attr.dtype.vx_type);
@@ -135,7 +146,8 @@ static int ml_vivante_configure_instance(void *backend_private, const void *prop
 
   vivante->outputInfo.num_tensors = vivante->graph->output.num;
   for (unsigned int i = 0; i < vivante->graph->output.num; i++) {
-    vsi_nn_tensor_t *o_tensor = vsi_nn_GetTensor (vivante->graph, vivante->graph->output.tensors[i]);
+    vsi_nn_tensor_t *o_tensor
+        = vsi_nn_GetTensor (vivante->graph, vivante->graph->output.tensors[i]);
     GstTensorInfo *info = gst_tensors_info_get_nth_info (&vivante->outputInfo, i);
 
     info->type = convert_tensortype (o_tensor->attr.dtype.vx_type);
@@ -148,7 +160,8 @@ static int ml_vivante_configure_instance(void *backend_private, const void *prop
   return 0;
 }
 
-static int ml_vivante_invoke(void *backend_private, const void *input_, void *output_)
+static int
+ml_vivante_invoke (void *backend_private, const void *input_, void *output_)
 {
   const GstTensorMemory *input = (const GstTensorMemory *) input_;
   GstTensorMemory *output = (GstTensorMemory *) output_;
@@ -159,8 +172,10 @@ static int ml_vivante_invoke(void *backend_private, const void *input_, void *ou
   }
 
   for (unsigned int i = 0; i < vivante->graph->input.num; i++) {
-    vsi_nn_tensor_t *tensor = vsi_nn_GetTensor (vivante->graph, vivante->graph->input.tensors[i]);
-    vivante->result_vsi_nn_CopyDataToTensor (vivante->graph, tensor, (uint8_t *) input[i].data);
+    vsi_nn_tensor_t *tensor
+        = vsi_nn_GetTensor (vivante->graph, vivante->graph->input.tensors[i]);
+    vivante->result_vsi_nn_CopyDataToTensor (
+        vivante->graph, tensor, (uint8_t *) input[i].data);
   }
 
   vivante->result_vsi_nn_RunGraph (vivante->graph);
@@ -169,7 +184,8 @@ static int ml_vivante_invoke(void *backend_private, const void *input_, void *ou
     vivante->postProcessFunc (vivante->graph);
 
   for (unsigned int i = 0; i < vivante->graph->output.num; i++) {
-    vsi_nn_tensor_t *out_tensor = vsi_nn_GetTensor (vivante->graph, vivante->graph->output.tensors[i]);
+    vsi_nn_tensor_t *out_tensor
+        = vsi_nn_GetTensor (vivante->graph, vivante->graph->output.tensors[i]);
     vsi_nn_CopyTensorToBuffer (vivante->graph, out_tensor, output[i].data);
   }
 
@@ -189,7 +205,8 @@ ml_vivante_get_framework_info (void *backend_private, void *fw_info)
   return HAL_ML_ERROR_NONE;
 }
 
-static int ml_vivante_get_model_info(void *backend_private, int ops_, void *in_info_, void *out_info_)
+static int
+ml_vivante_get_model_info (void *backend_private, int ops_, void *in_info_, void *out_info_)
 {
   int ops = (model_info_ops) ops_;
   GstTensorsInfo *in_info = (GstTensorsInfo *) in_info_;
@@ -207,7 +224,8 @@ static int ml_vivante_get_model_info(void *backend_private, int ops_, void *in_i
   return 0;
 }
 
-static int ml_vivante_event_handler(void *backend_private, int ops_, void *data_)
+static int
+ml_vivante_event_handler (void *backend_private, int ops_, void *data_)
 {
   int ops = (event_ops) ops_;
   GstTensorFilterFrameworkEventData *data = (GstTensorFilterFrameworkEventData *) data_;
@@ -215,7 +233,8 @@ static int ml_vivante_event_handler(void *backend_private, int ops_, void *data_
   return HAL_ML_ERROR_NOT_SUPPORTED;
 }
 
-static int ml_vivante_hal_backend_init(void **data)
+static int
+ml_vivante_hal_backend_init (void **data)
 {
   hal_backend_ml_funcs *funcs = NULL;
 
@@ -237,9 +256,10 @@ static int ml_vivante_hal_backend_init(void **data)
   return 0;
 }
 
-static int ml_vivante_hal_backend_exit(void *data)
+static int
+ml_vivante_hal_backend_exit (void *data)
 {
-  memset (data, 0x0, sizeof(hal_backend_ml_funcs));
+  memset (data, 0x0, sizeof (hal_backend_ml_funcs));
   return 0;
 }
 
