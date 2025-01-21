@@ -427,6 +427,19 @@ static int ml_snpe_invoke(void *backend_private, const void *input_, void *outpu
   return HAL_ML_ERROR_NONE;
 }
 
+static int
+ml_snpe_get_framework_info (void *backend_private, void *fw_info)
+{
+  GstTensorFilterFrameworkInfo *info = (GstTensorFilterFrameworkInfo *) fw_info;
+  info->name = "snpe";
+  info->allow_in_place = FALSE;
+  info->allocate_in_invoke = FALSE;
+  info->run_without_model = FALSE;
+  info->verify_model_path = FALSE;
+
+  return HAL_ML_ERROR_NONE;
+}
+
 static int ml_snpe_get_model_info(void *backend_private, int ops_, void *in_info_, void *out_info_)
 {
   int ops = (model_info_ops) ops_;
@@ -466,6 +479,7 @@ static int ml_snpe_hal_backend_init(void **data)
   funcs->deinit = ml_snpe_deinit;
   funcs->configure_instance = ml_snpe_configure_instance;
   funcs->invoke = ml_snpe_invoke;
+  funcs->get_framework_info = ml_snpe_get_framework_info;
   funcs->get_model_info = ml_snpe_get_model_info;
   funcs->event_handler = ml_snpe_event_handler;
 

@@ -176,6 +176,19 @@ static int ml_vivante_invoke(void *backend_private, const void *input_, void *ou
   return 0;
 }
 
+static int
+ml_vivante_get_framework_info (void *backend_private, void *fw_info)
+{
+  GstTensorFilterFrameworkInfo *info = (GstTensorFilterFrameworkInfo *) fw_info;
+  info->name = "vivante-tizen-hal";
+  info->allow_in_place = FALSE;
+  info->allocate_in_invoke = FALSE;
+  info->run_without_model = FALSE;
+  info->verify_model_path = FALSE;
+
+  return HAL_ML_ERROR_NONE;
+}
+
 static int ml_vivante_get_model_info(void *backend_private, int ops_, void *in_info_, void *out_info_)
 {
   int ops = (model_info_ops) ops_;
@@ -217,6 +230,7 @@ static int ml_vivante_hal_backend_init(void **data)
   funcs->deinit = ml_vivante_deinit;
   funcs->configure_instance = ml_vivante_configure_instance;
   funcs->invoke = ml_vivante_invoke;
+  funcs->get_framework_info = ml_vivante_get_framework_info;
   funcs->get_model_info = ml_vivante_get_model_info;
   funcs->event_handler = ml_vivante_event_handler;
 
