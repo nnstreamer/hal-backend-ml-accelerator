@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: LGPL-2.1-only */
 /**
  * NNStreamer API for Tensor_Filter Sub-Plugins
  * Copyright (C) 2019 MyungJoo Ham <myungjoo.ham@samsung.com>
