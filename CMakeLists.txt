@@ -15,6 +15,10 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -O2 -fomit-frame-pointer -std=gnu+
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fdata-sections -ffunction-sections")
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 
+# Set linker flags. Let built shared libraries link so in /hal/lib directory.
+SET(CMAKE_EXE_LINKER_FLAGS "-Wl,--as-needed -Wl,--rpath=${HAL_LIBDIR}")
+SET(CMAKE_SHARED_LINKER_FLAGS "-Wl,--as-needed -Wl,--rpath=${HAL_LIBDIR}")
+
 SET(UTIL_SRCS
   ${PROJECT_SOURCE_DIR}/src/hal-backend-ml-util.cc
 )
