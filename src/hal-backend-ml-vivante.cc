@@ -68,7 +68,7 @@ ml_vivante_deinit (void *backend_private)
 {
   vivante_handle_s *vivante = (vivante_handle_s *) backend_private;
   if (!vivante) {
-    g_error ("[vivante backend] ml_vivante_deinit called with invalid backend_private");
+    g_critical ("[vivante backend] invalid backend_private");
     return HAL_ML_ERROR_INVALID_PARAMETER;
   }
 
@@ -94,7 +94,7 @@ ml_vivante_configure_instance (void *backend_private, const void *prop_)
   const GstTensorFilterProperties *prop = (const GstTensorFilterProperties *) prop_;
   vivante_handle_s *vivante = (vivante_handle_s *) backend_private;
   if (!vivante) {
-    g_error ("[vivante backend] ml_vivante_configure_instance called with invalid backend_private");
+    g_critical ("[vivante backend] invalid backend_private");
     return HAL_ML_ERROR_INVALID_PARAMETER;
   }
 
@@ -159,7 +159,7 @@ ml_vivante_invoke (void *backend_private, const void *input_, void *output_)
   GstTensorMemory *output = (GstTensorMemory *) output_;
   vivante_handle_s *vivante = (vivante_handle_s *) backend_private;
   if (!vivante) {
-    g_error ("[vivante backend] ml_vivante_invoke called with invalid backend_private");
+    g_critical ("[vivante backend] invalid backend_private");
     return HAL_ML_ERROR_INVALID_PARAMETER;
   }
 
@@ -194,7 +194,7 @@ static int
 ml_vivante_get_framework_info (void *backend_private, void *fw_info)
 {
   GstTensorFilterFrameworkInfo *info = (GstTensorFilterFrameworkInfo *) fw_info;
-  info->name = "vivante-tizen-hal";
+  info->name = "vivante";
   info->allow_in_place = FALSE;
   info->allocate_in_invoke = FALSE;
   info->run_without_model = FALSE;
@@ -212,7 +212,7 @@ ml_vivante_get_model_info (void *backend_private, int ops_, void *in_info_, void
 
   vivante_handle_s *vivante = (vivante_handle_s *) backend_private;
   if (!vivante) {
-    g_error ("[vivante backend] ml_vivante_get_model_info called with invalid backend_private");
+    g_critical ("[vivante backend] invalid backend_private");
     return HAL_ML_ERROR_INVALID_PARAMETER;
   }
 
