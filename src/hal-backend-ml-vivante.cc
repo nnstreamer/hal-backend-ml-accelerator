@@ -47,13 +47,10 @@ typedef struct _vivante_handle_s {
 
   vsi_nn_graph_t *graph;
   void *handle; /* dlopened model so */
-  vsi_status (*result_vsi_nn_CopyDataToTensor) (
-      vsi_nn_graph_t *, vsi_nn_tensor_t *, uint8_t *);
-  void (*result_vnn_ReleaseNeuralNetwork) (vsi_nn_graph_t *);
   vsi_nn_graph_t *(*result_vnn_CreateNeuralNetwork) (const char *);
-  vsi_status (*result_vsi_nn_RunGraph) (vsi_nn_graph_t *);
-  int postProcess;
-  vsi_status (*postProcessFunc) (vsi_nn_graph_t *graph);
+  void (*result_vnn_ReleaseNeuralNetwork) (vsi_nn_graph_t *);
+  vsi_status (*postProcessFunc) (vsi_nn_graph_t *);
+  int postProcess; /** @todo Add postProcess custom prop */
 } vivante_handle_s;
 
 static int
@@ -106,19 +103,14 @@ ml_vivante_configure_instance (void *backend_private, const void *prop_)
 
   vivante->handle = dlopen (vivante->so_path, RTLD_NOW);
   if (!vivante->handle) {
-    g_error ("Failed to load shared library: %s", vivante->so_path);
+    g_critical ("Failed to load shared library: %s", vivante->so_path);
     return HAL_ML_ERROR_RUNTIME_ERROR;
   }
 
-  vivante->result_vsi_nn_CopyDataToTensor
-      = (vsi_status (*) (vsi_nn_graph_t *, vsi_nn_tensor_t *, uint8_t *)) dlsym (
-          vivante->handle, "vsi_nn_CopyDataToTensor");
   vivante->result_vnn_ReleaseNeuralNetwork = (void (*) (vsi_nn_graph_t *)) dlsym (
       vivante->handle, "vnn_ReleaseNeuralNetwork");
   vivante->result_vnn_CreateNeuralNetwork = (vsi_nn_graph_t * (*) (const char *) )
       dlsym (vivante->handle, "vnn_CreateNeuralNetwork");
-  vivante->result_vsi_nn_RunGraph
-      = (vsi_status (*) (vsi_nn_graph_t *)) dlsym (vivante->handle, "vsi_nn_RunGraph");
 
   if (vivante->postProcess) {
     vivante->postProcessFunc = (vsi_status (*) (vsi_nn_graph_t *)) dlsym (
@@ -174,11 +166,16 @@ ml_vivante_invoke (void *backend_private, const void *input_, void *output_)
   for (unsigned int i = 0; i < vivante->graph->input.num; i++) {
     vsi_nn_tensor_t *tensor
         = vsi_nn_GetTensor (vivante->graph, vivante->graph->input.tensors[i]);
-    vivante->result_vsi_nn_CopyDataToTensor (
-        vivante->graph, tensor, (uint8_t *) input[i].data);
+    if (vsi_nn_CopyDataToTensor (vivante->graph, tensor, (uint8_t *) input[i].data) != VSI_SUCCESS) {
+      g_critical ("[vivante backend] Failed to copy data to tensor");
+      return HAL_ML_ERROR_RUNTIME_ERROR;
+    }
   }
 
-  vivante->result_vsi_nn_RunGraph (vivante->graph);
+  if (vsi_nn_RunGraph (vivante->graph) != VSI_SUCCESS) {
+    g_critical ("[vivante backend] Failed to run graph");
+    return HAL_ML_ERROR_RUNTIME_ERROR;
+  }
 
   if (vivante->postProcess)
     vivante->postProcessFunc (vivante->graph);
@@ -186,10 +183,11 @@ ml_vivante_invoke (void *backend_private, const void *input_, void *output_)
   for (unsigned int i = 0; i < vivante->graph->output.num; i++) {
     vsi_nn_tensor_t *out_tensor
         = vsi_nn_GetTensor (vivante->graph, vivante->graph->output.tensors[i]);
+    /* Do not check return value of vsi_nnCopyTensorToBuffer. It returns error in normal case */
     vsi_nn_CopyTensorToBuffer (vivante->graph, out_tensor, output[i].data);
   }
 
-  return 0;
+  return HAL_ML_ERROR_NONE;
 }
 
 static int
