@@ -27,9 +27,6 @@ BuildRequires:  snpe-devel
 
 %endif # For DA
 
-# Let's disable rootstrap checker for now. It complains that ovxlib, amlogic-vsi-npu-sdk, snpe-devel should be not used.
-%define disable_hal_rootstrap_checker 1
-
 
 %description
 ML HAL backend drivers for various targets
