@@ -1,4 +1,4 @@
-Name:       hal-backend-ml
+Name:       hal-backend-ml-accelerator
 Summary:    ML HAL backend drivers for various targets
 Version:    0.0.1
 Release:    0
@@ -38,7 +38,7 @@ ML HAL backend drivers for various targets
 # Config vivante
 %if 0%{?vivante_support}
 %package vivante
-Summary:  hal-backend-ml for vivante
+Summary:  hal-backend-ml-accelerator for vivante
 %description vivante
 %define enable_vivante -DENABLE_VIVANTE=ON
 %endif
@@ -46,7 +46,7 @@ Summary:  hal-backend-ml for vivante
 # Config snpe
 %if 0%{?snpe_support}
 %package snpe
-Summary:  hal-backend-ml for snpe
+Summary:  hal-backend-ml-accelerator for snpe
 Requires: snpe
 %description snpe
 %define enable_snpe -DENABLE_SNPE=ON
@@ -77,14 +77,14 @@ make %{?_smp_mflags}
 
 %if 0%{?vivante_support}
 %files vivante
-%manifest packaging/hal-backend-ml.manifest
+%manifest packaging/hal-backend-ml-accelerator.manifest
 %license LICENSE
 %{_hal_libdir}/libhal-backend-ml-vivante.so
 %endif
 
 %if 0%{?snpe_support}
 %files snpe
-%manifest packaging/hal-backend-ml.manifest
+%manifest packaging/hal-backend-ml-accelerator.manifest
 %license LICENSE
 %{_hal_libdir}/libhal-backend-ml-snpe.so
 %endif
