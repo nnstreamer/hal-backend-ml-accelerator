@@ -32,8 +32,6 @@ ${PROJECT_SOURCE_DIR}/src/hal-backend-ml-vivante.cc
 SET(VIVANTE_LIBRARY_NAME "hal-backend-ml-vivante")
 pkg_check_modules(vivante_build_dep_pkgs REQUIRED
   hal-rootstrap
-  ovxlib
-  amlogic-vsi-npu-sdk
 )
 
 FOREACH(flag ${vivante_build_dep_pkgs_CFLAGS})
@@ -50,7 +48,6 @@ ENDIF()
 IF(ENABLE_SNPE)
 pkg_check_modules(snpe_build_dep_pkgs REQUIRED
   hal-rootstrap
-  snpe
 )
 
 FOREACH(flag ${snpe_build_dep_pkgs_CFLAGS})

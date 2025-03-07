@@ -15,14 +15,11 @@ BuildRequires:  pkgconfig(hal-rootstrap)
 ## For meson board
 %if 0%{?_with_meson64}
 %define         vivante_support 1
-BuildRequires:  pkgconfig(ovxlib)
-BuildRequires:  pkgconfig(amlogic-vsi-npu-sdk)
 %endif
 
 ## For qrb board
 %if 0%{?_with_qrb4210}
 %define         snpe_support 1
-BuildRequires:  snpe-devel
 %endif
 
 %endif # For DA
@@ -44,7 +41,6 @@ Summary:  hal-backend-ml-accelerator for vivante
 %if 0%{?snpe_support}
 %package snpe
 Summary:  hal-backend-ml-accelerator for snpe
-Requires: snpe
 %description snpe
 %define enable_snpe -DENABLE_SNPE=ON
 %endif
