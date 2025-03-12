@@ -2,6 +2,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 PROJECT(hal-backend-ml CXX)
 INCLUDE(GNUInstallDirs)
 
+option(ENABLE_DUMMY "Enable dummy-passthrough backend" OFF)
 option(ENABLE_VIVANTE "Enable vivante backend" OFF)
 option(ENABLE_SNPE "Enable snpe backend" OFF)
 
@@ -22,6 +23,27 @@ SET(CMAKE_SHARED_LINKER_FLAGS "-Wl,--as-needed -Wl,--rpath=${HAL_LIBDIR}")
 SET(UTIL_SRCS
   ${PROJECT_SOURCE_DIR}/src/hal-backend-ml-util.cc
 )
+
+pkg_check_modules(pkgs REQUIRED
+  hal-rootstrap
+)
+
+FOREACH(flag ${pkgs_CFLAGS})
+  SET(EXTRA_CFLAGS "${CMAKE_C_FLAGS} ${flag}")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag}")
+ENDFOREACH(flag)
+
+# dummy-passthrough
+IF(ENABLE_DUMMY)
+SET(DUMMY_PASSTHROUGH_SRCS
+${PROJECT_SOURCE_DIR}/src/hal-backend-ml-dummy-passthrough.cc
+)
+
+SET(DUMMY_PASSTHROUGH_LIBRARY_NAME "hal-backend-ml-dummy-passthrough")
+ADD_LIBRARY(${DUMMY_PASSTHROUGH_LIBRARY_NAME} SHARED ${DUMMY_PASSTHROUGH_SRCS} ${UTIL_SRCS})
+TARGET_LINK_LIBRARIES(${DUMMY_PASSTHROUGH_LIBRARY_NAME} ${pkgs_LDFLAGS})
+INSTALL(TARGETS ${DUMMY_PASSTHROUGH_LIBRARY_NAME} DESTINATION ${HAL_LIBDIR} COMPONENT RuntimeLibraries)
+ENDIF()
 
 # vivante
 IF(ENABLE_VIVANTE)
@@ -64,6 +86,3 @@ ADD_LIBRARY(${SNPE_LIBRARY_NAME} SHARED ${SNPE_SRCS} ${UTIL_SRCS})
 TARGET_LINK_LIBRARIES(${SNPE_LIBRARY_NAME} ${snpe_build_dep_pkgs_LDFLAGS})
 INSTALL(TARGETS ${SNPE_LIBRARY_NAME} DESTINATION ${HAL_LIBDIR} COMPONENT RuntimeLibraries)
 ENDIF()
-
-# Dummy install command when there are no backends deps.
-INSTALL(CODE "message(STATUS \"Performing dummy install actions\")")
