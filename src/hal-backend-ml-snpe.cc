@@ -504,9 +504,9 @@ ml_snpe_hal_backend_exit (void *data)
 
 hal_backend hal_backend_ml_data = {
   .name = "ml-snpe",
-  .vendor = "YONGJOO",
+  .vendor = "Qualcomm",
   .init = ml_snpe_hal_backend_init,
   .exit = ml_snpe_hal_backend_exit,
   .major_version = 1,
-  .minor_version = 1,
+  .minor_version = 0,
 };

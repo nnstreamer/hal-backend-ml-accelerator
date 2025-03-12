@@ -263,9 +263,9 @@ ml_vivante_hal_backend_exit (void *data)
 
 hal_backend hal_backend_ml_data = {
   .name = "ml-vivante",
-  .vendor = "YONGJOO",
+  .vendor = "VeriSilicon",
   .init = ml_vivante_hal_backend_init,
   .exit = ml_vivante_hal_backend_exit,
   .major_version = 1,
-  .minor_version = 1,
+  .minor_version = 0,
 };
