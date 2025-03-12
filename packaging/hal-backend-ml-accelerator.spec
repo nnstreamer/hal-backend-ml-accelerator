@@ -28,6 +28,15 @@ BuildRequires:  pkgconfig(hal-rootstrap)
 %description
 ML HAL backend drivers for various targets
 
+# Config dummy backend (dummy-passthrough)
+%define         dummy_support 1
+
+%if 0%{?dummy_support}
+%package dummy
+Summary:  dummy backend for hal-backend-ml-accelerator
+%description dummy
+%define enable_dummy -DENABLE_DUMMY=ON
+%endif
 
 # Config vivante
 %if 0%{?vivante_support}
@@ -53,6 +62,7 @@ Summary:  hal-backend-ml-accelerator for snpe
 %cmake \
   -DCMAKE_HAL_LIBDIR_PREFIX=%{_hal_libdir} \
   -DCMAKE_HAL_LICENSEDIR_PREFIX=%{_hal_licensedir} \
+  %{?enable_dummy} \
   %{?enable_vivante} \
   %{?enable_snpe} \
   .
@@ -67,6 +77,13 @@ make %{?_smp_mflags}
 
 %postun
 /sbin/ldconfig
+
+%if 0%{?dummy_support}
+%files dummy
+%manifest packaging/hal-backend-ml-accelerator.manifest
+%license LICENSE
+%{_hal_libdir}/libhal-backend-ml-dummy-passthrough.so
+%endif
 
 %if 0%{?vivante_support}
 %files vivante
