@@ -1,0 +1,24 @@
+name: Tizen GBS
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        gbs_build_arch: [ x86_64, armv7l, aarch64, riscv64 ]
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+    - name: prepare GBS
+      run: |
+        echo "deb [trusted=yes] http://download.tizen.org/tools/latest-release/Ubuntu_22.04/ /" | sudo tee /etc/apt/sources.list.d/tizen.list
+        sudo apt-get update && sudo apt-get install -y gbs
+        cp .github/workflows/tizen.gbs.conf ~/.gbs.conf
+    - name: run GBS build
+      run: |
+        gbs build -A ${{ matrix.gbs_build_arch }}
