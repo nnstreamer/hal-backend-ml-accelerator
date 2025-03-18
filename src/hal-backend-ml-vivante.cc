@@ -57,16 +57,19 @@ static int
 ml_vivante_init (void **backend_private)
 {
   vivante_handle_s *vivante = g_new0 (vivante_handle_s, 1);
+
   gst_tensors_info_init (&vivante->inputInfo);
   gst_tensors_info_init (&vivante->outputInfo);
+
   *backend_private = vivante;
-  return 0;
+  return HAL_ML_ERROR_NONE;
 }
 
 static int
 ml_vivante_deinit (void *backend_private)
 {
   vivante_handle_s *vivante = (vivante_handle_s *) backend_private;
+
   if (!vivante) {
     g_critical ("[vivante backend] invalid backend_private");
     return HAL_ML_ERROR_INVALID_PARAMETER;
@@ -93,6 +96,7 @@ ml_vivante_configure_instance (void *backend_private, const void *prop_)
 {
   const GstTensorFilterProperties *prop = (const GstTensorFilterProperties *) prop_;
   vivante_handle_s *vivante = (vivante_handle_s *) backend_private;
+
   if (!vivante) {
     g_critical ("[vivante backend] invalid backend_private");
     return HAL_ML_ERROR_INVALID_PARAMETER;
@@ -149,7 +153,7 @@ ml_vivante_configure_instance (void *backend_private, const void *prop_)
     }
   }
 
-  return 0;
+  return HAL_ML_ERROR_NONE;
 }
 
 static int
@@ -158,6 +162,7 @@ ml_vivante_invoke (void *backend_private, const void *input_, void *output_)
   const GstTensorMemory *input = (const GstTensorMemory *) input_;
   GstTensorMemory *output = (GstTensorMemory *) output_;
   vivante_handle_s *vivante = (vivante_handle_s *) backend_private;
+
   if (!vivante) {
     g_critical ("[vivante backend] invalid backend_private");
     return HAL_ML_ERROR_INVALID_PARAMETER;
@@ -194,6 +199,7 @@ static int
 ml_vivante_get_framework_info (void *backend_private, void *fw_info)
 {
   GstTensorFilterFrameworkInfo *info = (GstTensorFilterFrameworkInfo *) fw_info;
+
   info->name = "vivante";
   info->allow_in_place = FALSE;
   info->allocate_in_invoke = FALSE;
@@ -209,8 +215,8 @@ ml_vivante_get_model_info (void *backend_private, int ops_, void *in_info_, void
   int ops = (model_info_ops) ops_;
   GstTensorsInfo *in_info = (GstTensorsInfo *) in_info_;
   GstTensorsInfo *out_info = (GstTensorsInfo *) out_info_;
-
   vivante_handle_s *vivante = (vivante_handle_s *) backend_private;
+
   if (!vivante) {
     g_critical ("[vivante backend] invalid backend_private");
     return HAL_ML_ERROR_INVALID_PARAMETER;
@@ -219,15 +225,12 @@ ml_vivante_get_model_info (void *backend_private, int ops_, void *in_info_, void
   gst_tensors_info_copy (in_info, &vivante->inputInfo);
   gst_tensors_info_copy (out_info, &vivante->outputInfo);
 
-  return 0;
+  return HAL_ML_ERROR_NONE;
 }
 
 static int
 ml_vivante_event_handler (void *backend_private, int ops_, void *data_)
 {
-  int ops = (event_ops) ops_;
-  GstTensorFilterFrameworkEventData *data = (GstTensorFilterFrameworkEventData *) data_;
-
   return HAL_ML_ERROR_NOT_SUPPORTED;
 }
 
