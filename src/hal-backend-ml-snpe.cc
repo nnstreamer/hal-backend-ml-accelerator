@@ -41,13 +41,14 @@ ml_snpe_init (void **backend_private)
   gst_tensors_info_init (&snpe->outputInfo);
 
   *backend_private = snpe;
-  return 0;
+  return HAL_ML_ERROR_NONE;
 }
 
 static int
 ml_snpe_deinit (void *backend_private)
 {
   snpe_handle_s *snpe = (snpe_handle_s *) backend_private;
+
   if (!snpe) {
     g_critical ("[snpe backend] ml_snpe_deinit called with invalid backend_private");
     return HAL_ML_ERROR_INVALID_PARAMETER;
@@ -75,7 +76,7 @@ ml_snpe_deinit (void *backend_private)
   gst_tensors_info_free (&snpe->outputInfo);
 
   g_free (snpe);
-  return 0;
+  return HAL_ML_ERROR_NONE;
 }
 
 static int
@@ -83,6 +84,7 @@ ml_snpe_configure_instance (void *backend_private, const void *prop_)
 {
   const GstTensorFilterProperties *prop = (const GstTensorFilterProperties *) prop_;
   snpe_handle_s *snpe = (snpe_handle_s *) backend_private;
+
   if (!snpe) {
     g_critical ("[snpe backend] ml_snpe_configure_instance called with invalid backend_private");
     return HAL_ML_ERROR_INVALID_PARAMETER;
@@ -414,6 +416,12 @@ ml_snpe_invoke (void *backend_private, const void *input_, void *output_)
   const GstTensorMemory *input = (const GstTensorMemory *) input_;
   GstTensorMemory *output = (GstTensorMemory *) output_;
   snpe_handle_s *snpe = (snpe_handle_s *) backend_private;
+
+  if (!snpe) {
+    g_critical ("[snpe backend] ml_snpe_invoke called with invalid backend_private");
+    return HAL_ML_ERROR_INVALID_PARAMETER;
+  }
+
   for (unsigned int i = 0; i < snpe->inputInfo.num_tensors; i++) {
     GstTensorInfo *info
         = gst_tensors_info_get_nth_info (std::addressof (snpe->inputInfo), i);
@@ -437,6 +445,7 @@ static int
 ml_snpe_get_framework_info (void *backend_private, void *fw_info)
 {
   GstTensorFilterFrameworkInfo *info = (GstTensorFilterFrameworkInfo *) fw_info;
+
   info->name = "snpe";
   info->allow_in_place = FALSE;
   info->allocate_in_invoke = FALSE;
@@ -453,6 +462,12 @@ ml_snpe_get_model_info (void *backend_private, int ops_, void *in_info_, void *o
   GstTensorsInfo *in_info = (GstTensorsInfo *) in_info_;
   GstTensorsInfo *out_info = (GstTensorsInfo *) out_info_;
   snpe_handle_s *snpe = (snpe_handle_s *) backend_private;
+
+  if (!snpe) {
+    g_critical ("[snpe backend] ml_snpe_get_model_info called with invalid backend_private");
+    return HAL_ML_ERROR_INVALID_PARAMETER;
+  }
+
   if (ops == GET_IN_OUT_INFO) {
     gst_tensors_info_copy (in_info, &snpe->inputInfo);
     gst_tensors_info_copy (out_info, &snpe->outputInfo);
@@ -460,15 +475,12 @@ ml_snpe_get_model_info (void *backend_private, int ops_, void *in_info_, void *o
     return HAL_ML_ERROR_NONE;
   }
 
-  return -2;
+  return HAL_ML_ERROR_NOT_SUPPORTED;
 }
 
 static int
 ml_snpe_event_handler (void *backend_private, int ops_, void *data_)
 {
-  int ops = (event_ops) ops_;
-  GstTensorFilterFrameworkEventData *data = (GstTensorFilterFrameworkEventData *) data_;
-
   return HAL_ML_ERROR_NOT_SUPPORTED;
 }
 
