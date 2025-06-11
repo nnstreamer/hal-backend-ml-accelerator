@@ -191,15 +191,25 @@ _helper_parse_tensor_attributes (JsonObject *tensor_obj, vsi_nn_tensor_attr_t *v
   }
   vsi_attr->dtype.vx_type = vivante_vsi_type_from_string (vx_type_str);
 
-  // Optional fields with defaults
+  // Required: qnt_type
   vsi_attr->dtype.qnt_type
       = vivante_qnt_type_from_string (json_object_get_string_member_with_default (
           dtype_obj, "qnt_type", "VSI_NN_QNT_TYPE_NONE"));
-  vsi_attr->dtype.fl = json_object_get_int_member_with_default (dtype_obj, "fl", 0);
-  vsi_attr->dtype.zero_point
-      = json_object_get_int_member_with_default (dtype_obj, "zero_point", 0);
-  vsi_attr->dtype.scale
-      = json_object_get_double_member_with_default (dtype_obj, "scale", 0.0f);
+
+  // Optional fields with defaults
+  if (json_object_has_member (dtype_obj, "fl")) {
+    vsi_attr->dtype.fl = json_object_get_int_member_with_default (dtype_obj, "fl", 0);
+  }
+
+  if (json_object_has_member (dtype_obj, "zero_point")) {
+    vsi_attr->dtype.zero_point
+        = json_object_get_int_member_with_default (dtype_obj, "zero_point", 0);
+  }
+
+  if (json_object_has_member (dtype_obj, "scale")) {
+    vsi_attr->dtype.scale
+        = json_object_get_double_member_with_default (dtype_obj, "scale", 0.0f);
+  }
 
   /** @todo Parse scales, scale_dim, etc. for PERCHANNEL quantization */
 
