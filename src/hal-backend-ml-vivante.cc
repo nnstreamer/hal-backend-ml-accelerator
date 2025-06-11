@@ -134,11 +134,7 @@ convert_to_tensor_type (vsi_nn_type_e vsi_type)
       return _NNS_UINT64;
     case VSI_NN_TYPE_FLOAT16:
     case VSI_NN_TYPE_BFLOAT16:
-#ifdef FLOAT16_SUPPORT
       return _NNS_FLOAT16;
-#else
-      return _NNS_UINT16;
-#endif
     case VSI_NN_TYPE_FLOAT32:
       return _NNS_FLOAT32;
     case VSI_NN_TYPE_FLOAT64:
