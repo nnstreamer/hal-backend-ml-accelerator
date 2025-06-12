@@ -524,8 +524,11 @@ ml_vivante_configure_instance (void *backend_private, const void *prop_)
       g_critical ("[vivante] JSON loading was selected, but no JSON path was provided via 'json:' custom property.");
       return HAL_ML_ERROR_INVALID_PARAMETER;
     }
-    if (_json_create_neural_network (vivante) != HAL_ML_ERROR_NONE) {
+
+    int status = _json_create_neural_network (vivante);
+    if (status != HAL_ML_ERROR_NONE) {
       g_critical ("[vivante] Failed to create VSI graph.");
+      return status;
     }
   } else {
     if (prop->num_models <= 1) {
@@ -533,8 +536,11 @@ ml_vivante_configure_instance (void *backend_private, const void *prop_)
       return HAL_ML_ERROR_INVALID_PARAMETER;
     }
     vivante->so_path = g_strdup (prop->model_files[1]);
+
+    int status = _so_create_neural_network (vivante);
     if (_so_create_neural_network (vivante) != HAL_ML_ERROR_NONE) {
       g_critical ("[vivante] Failed to create VSI graph.");
+      return status;
     }
   }
 
