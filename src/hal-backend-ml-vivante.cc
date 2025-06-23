@@ -538,7 +538,7 @@ ml_vivante_configure_instance (void *backend_private, const void *prop_)
     vivante->so_path = g_strdup (prop->model_files[1]);
 
     int status = _so_create_neural_network (vivante);
-    if (_so_create_neural_network (vivante) != HAL_ML_ERROR_NONE) {
+    if (status != HAL_ML_ERROR_NONE) {
       g_critical ("[vivante] Failed to create VSI graph.");
       return status;
     }
