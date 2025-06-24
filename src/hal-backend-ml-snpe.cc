@@ -32,28 +32,20 @@ typedef struct _snpe_handle_s {
   std::vector<Snpe_IUserBuffer_Handle_t> user_buffers;
 } snpe_handle_s;
 
-static int
-ml_snpe_init (void **backend_private)
+/** @brief Initialize handle. */
+static void
+_init_snpe_handle (snpe_handle_s *snpe)
 {
-  snpe_handle_s *snpe = g_new0 (snpe_handle_s, 1);
+  memset (snpe, 0, sizeof (snpe_handle_s));
 
   gst_tensors_info_init (&snpe->inputInfo);
   gst_tensors_info_init (&snpe->outputInfo);
-
-  *backend_private = snpe;
-  return HAL_ML_ERROR_NONE;
 }
 
-static int
-ml_snpe_deinit (void *backend_private)
+/** @brief Close model and clear internal data in handle. */
+static void
+_clear_snpe_handle (snpe_handle_s *snpe)
 {
-  snpe_handle_s *snpe = (snpe_handle_s *) backend_private;
-
-  if (!snpe) {
-    g_critical ("[snpe backend] ml_snpe_deinit called with invalid backend_private");
-    return HAL_ML_ERROR_INVALID_PARAMETER;
-  }
-
   if (snpe->inputMap_h)
     Snpe_UserBufferMap_Delete (snpe->inputMap_h);
 
@@ -69,13 +61,38 @@ ml_snpe_deinit (void *backend_private)
   if (snpe->snpe_h)
     Snpe_SNPE_Delete (snpe->snpe_h);
 
-  if (snpe->model_path)
-    g_free (snpe->model_path);
+  g_free (snpe->model_path);
 
   gst_tensors_info_free (&snpe->inputInfo);
   gst_tensors_info_free (&snpe->outputInfo);
 
+  _init_snpe_handle (snpe);
+}
+
+static int
+ml_snpe_init (void **backend_private)
+{
+  snpe_handle_s *snpe = g_new0 (snpe_handle_s, 1);
+
+  _init_snpe_handle (snpe);
+
+  *backend_private = snpe;
+  return HAL_ML_ERROR_NONE;
+}
+
+static int
+ml_snpe_deinit (void *backend_private)
+{
+  snpe_handle_s *snpe = (snpe_handle_s *) backend_private;
+
+  if (!snpe) {
+    g_critical ("[snpe backend] ml_snpe_deinit called with invalid backend_private");
+    return HAL_ML_ERROR_INVALID_PARAMETER;
+  }
+
+  _clear_snpe_handle (snpe);
   g_free (snpe);
+
   return HAL_ML_ERROR_NONE;
 }
 
@@ -85,10 +102,17 @@ ml_snpe_configure_instance (void *backend_private, const void *prop_)
   const GstTensorFilterProperties *prop = (const GstTensorFilterProperties *) prop_;
   snpe_handle_s *snpe = (snpe_handle_s *) backend_private;
 
-  if (!snpe) {
+  if (!snpe || !prop) {
     g_critical ("[snpe backend] ml_snpe_configure_instance called with invalid backend_private");
     return HAL_ML_ERROR_INVALID_PARAMETER;
   }
+
+  if (snpe->model_path) {
+    g_critical ("[snpe backend] invalid state, clear old data.");
+    _clear_snpe_handle (snpe);
+  }
+
+  snpe->model_path = g_strdup (prop->model_files[0]);
 
   Snpe_DlVersion_Handle_t lib_version_h = NULL;
   Snpe_RuntimeList_Handle_t runtime_list_h = NULL;
@@ -325,7 +349,6 @@ ml_snpe_configure_instance (void *backend_private, const void *prop_)
       throw std::invalid_argument (err_msg);
     }
 
-    snpe->model_path = g_strdup (prop->model_files[0]);
     container_h = Snpe_DlContainer_Open (snpe->model_path);
     if (!container_h)
       throw std::runtime_error (
