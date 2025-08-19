@@ -22,6 +22,8 @@ typedef struct _vivante_handle_s {
   gboolean use_json_for_graph;
   gboolean has_post_process; /** @deprecated Do not use it. */
 
+  gboolean convert_output_fp32; /* Convert all output tensor into fp32 */
+
   GstTensorsInfo inputInfo;
   GstTensorsInfo outputInfo;
 
@@ -447,6 +449,7 @@ _init_vivante_handle (vivante_handle_s *vivante)
 
   vivante->use_json_for_graph = TRUE;
   vivante->has_post_process = FALSE;
+  vivante->convert_output_fp32 = FALSE;
 }
 
 /** @brief Close model and clear internal data in handle. */
@@ -510,6 +513,7 @@ ml_vivante_configure_instance (void *backend_private, const void *prop_)
 {
   const GstTensorFilterProperties *prop = (const GstTensorFilterProperties *) prop_;
   vivante_handle_s *vivante = (vivante_handle_s *) backend_private;
+  gboolean _convert_output_fp32 = FALSE;
 
   if (!vivante || !prop) {
     g_critical ("[vivante] invalid backend_private");
@@ -542,6 +546,15 @@ ml_vivante_configure_instance (void *backend_private, const void *prop_)
           vivante->use_json_for_graph = TRUE;
           vivante->json_path = g_strdup (option[1]);
           g_info ("[vivante] Using JSON for graph setup: %s", vivante->json_path);
+        } else if (g_ascii_strcasecmp (option[0], "OutputType") == 0) {
+          /* @todo let each output tensor has different outputtype */
+          gchar *type = option[1];
+          if (g_ascii_strcasecmp (type, "FLOAT32") == 0 || g_ascii_strcasecmp (type, "FP32") == 0) {
+            g_info ("[vivante] Convert output to fp32!");
+            _convert_output_fp32 = TRUE;
+          } else {
+            g_warning ("Ignore unsupported output type (%s)", option[1]);
+          }
         } else {
           g_warning ("Unknown option (%s).", options[op]);
         }
@@ -600,6 +613,12 @@ ml_vivante_configure_instance (void *backend_private, const void *prop_)
     GstTensorInfo *info = gst_tensors_info_get_nth_info (&vivante->outputInfo, i);
 
     info->type = convert_to_tensor_type (o_tensor->attr.dtype.vx_type);
+
+    /* Output tensors should be converted into fp32 */
+    if (_convert_output_fp32 && info->type != _NNS_FLOAT32) {
+      info->type = _NNS_FLOAT32;
+      vivante->convert_output_fp32 = TRUE;
+    }
     info->name = g_strdup_printf ("%i", vivante->graph->output.tensors[i]);
     for (unsigned int j = 0; j < o_tensor->attr.dim_num; ++j) {
       info->dimension[j] = o_tensor->attr.size[j];
@@ -641,8 +660,22 @@ ml_vivante_invoke (void *backend_private, const void *input_, void *output_)
   for (unsigned int i = 0; i < vivante->graph->output.num; i++) {
     vsi_nn_tensor_t *out_tensor
         = vsi_nn_GetTensor (vivante->graph, vivante->graph->output.tensors[i]);
-    /* Do not check return value of vsi_nnCopyTensorToBuffer. It returns error in normal case */
-    vsi_nn_CopyTensorToBuffer (vivante->graph, out_tensor, output[i].data);
+
+    /* Convert to fp32 */
+    if (vivante->convert_output_fp32) {
+      float *fp32_data = vsi_nn_ConvertTensorToFloat32Data (vivante->graph, out_tensor);
+      if (fp32_data == NULL) {
+        g_critical ("[vivante] Failed to convert output tensor to FP32.");
+        return HAL_ML_ERROR_RUNTIME_ERROR;
+      }
+
+      vsi_size_t num_elements = vsi_nn_GetElementNum (out_tensor);
+      memcpy (output[i].data, fp32_data, num_elements * sizeof (float));
+      vsi_nn_Free (fp32_data);
+    } else {
+      /* Do not check return value of vsi_nnCopyTensorToBuffer. It returns error in normal case */
+      vsi_nn_CopyTensorToBuffer (vivante->graph, out_tensor, output[i].data);
+    }
   }
 
   return HAL_ML_ERROR_NONE;
