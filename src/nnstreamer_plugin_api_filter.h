@@ -136,6 +136,10 @@ typedef struct _GstTensorFilterProperties
   int invoke_dynamic; /**< True for supporting invoke with flexible output. */
 
   uint32_t suspend; /**< Timeout (ms) for suspend. (Unload the framework) */
+
+  int invoke_async; /**< The sub-plugin must support asynchronous output to use this option. If set to TRUE, the sub-plugin can generate multiple outputs asynchronously per single input. Otherwise, only synchronous single-output is expected and async callback is ignored. */
+  GstTensorDataCallback async_callback; /**< The callback function pointer to be called every time the sub-plugin generates a new output tensor asynchronously. Note that this is internal data for tensor-filter and DO NOT change this value. */
+  void *async_user_data; /**< The private data to be passed to tensor data callback of asynchronous invoke. Note that this is internal data for tensor-filter and DO NOT change this value. */
 } GstTensorFilterProperties;
 
 /**
@@ -589,6 +593,22 @@ nnstreamer_filter_shared_model_remove (void *instance, const char *key,
 extern void
 nnstreamer_filter_shared_model_replace (void *instance, const char *key,
     void *new_interpreter, void (*replace_callback) (void *, void *), void (*free_callback) (void*));
+
+/**
+ * @brief Dispatches the asynchronously generated output to the registered callback.
+ *
+ * This function is used by the sub-plugin to dispatch the output that has been generated asynchronously.
+ * It invokes the internal callback function of tensor-filter to handle the output data.
+ *
+ * Note:
+ * Before calling this function, you must enable asynchronous invocation by setting the property 'invoke-async' as true.
+ * Failure to do so will result in undefined behavior, as no callback and handle will be registered.
+ *
+ * @param[in] prop GstTensorFilterProperties object.
+ * @param[in] output The GstTensorMemory holding the asynchronously generated output. Note that this function takes the ownership of each tensor data.
+ */
+extern void
+nnstreamer_filter_dispatch_output_async (GstTensorFilterProperties * prop, GstTensorMemory * output);
 
 #ifdef __cplusplus
 }
