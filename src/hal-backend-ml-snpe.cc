@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 
+#include <fstream>
 #include <glib.h>
 #include <stdexcept>
 #include <vector>
@@ -69,11 +70,65 @@ _clear_snpe_handle (snpe_handle_s *snpe)
   _init_snpe_handle (snpe);
 }
 
+/** @brief A helper function to trim whitespace from both ends of a string. */
+static std::string
+_trim_string (const std::string &str)
+{
+  if (str.empty ()) {
+    return "";
+  }
+
+  const std::string whitespace = " \t\n\r\f\v";
+
+  auto start = str.find_first_not_of (whitespace);
+  if (start == std::string::npos) {
+    return "";
+  }
+
+  auto end = str.find_last_not_of (whitespace);
+
+  return str.substr (start, end - start + 1);
+}
+
+/** @brief Set the environment variable. */
+static void
+set_environment_var_adsp ()
+{
+  const std::string iniFilePath = "/hal/etc/snpe/dsp/adsp_library_path.ini";
+  const std::string defaultPath = "/hal/lib/dsp;/dsp";
+  const char *envVarName = "ADSP_LIBRARY_PATH";
+
+  std::string envPath;
+
+  g_info ("Checking for ADSP_LIBRARY_PATH configuration file: %s", iniFilePath.c_str ());
+
+  std::ifstream iniFile (iniFilePath);
+
+  // Parse the ini file.
+  if (iniFile) {
+    std::string line;
+    if (std::getline (iniFile, line)) {
+      envPath = _trim_string (line);
+    }
+  }
+
+  // If the path was not successfully read from the file, use the default.
+  if (envPath.empty ()) {
+    envPath = defaultPath;
+    g_info ("Using default ADSP_LIBRARY_PATH");
+  }
+
+  // Set the environment variable.
+  g_setenv (envVarName, envPath.c_str (), TRUE);
+  g_info ("Set %s=%s", envVarName, g_getenv (envVarName));
+}
+
 static int
 ml_snpe_init (void **backend_private)
 {
   snpe_handle_s *snpe = g_new0 (snpe_handle_s, 1);
 
+  set_environment_var_adsp ();
   _init_snpe_handle (snpe);
 
   *backend_private = snpe;
