@@ -1,6 +1,9 @@
 Name:       hal-backend-ml-accelerator
 Summary:    ML HAL backend drivers for various targets
-Version:    0.0.1
+# Synchronize the version information.
+# 1. CMake : ./CMakeLists.txt
+# 2. Tizen : ./packaging/hal-backend-ml-accelerator.spec
+Version:    0.1.0
 Release:    0
 Group:      Machine Learning/ML Framework
 License:    Apache-2.0
@@ -98,3 +101,7 @@ make %{?_smp_mflags}
 %license LICENSE
 %{_hal_libdir}/libhal-backend-ml-snpe.so
 %endif
+
+%changelog
+* Wed Aug 27 2025 Yongjoo Ahn <yongjoo1.ahn@samsung.com>
+- Release of 0.1.0 (Tizen 10.0 M2)
