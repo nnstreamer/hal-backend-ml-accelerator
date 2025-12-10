@@ -196,6 +196,9 @@ ml_snpe_configure_instance (void *backend_private, const void *prop_)
   /* default runtime is CPU */
   Snpe_Runtime_t runtime = SNPE_RUNTIME_CPU;
 
+  /* default performance profile is 'BALANCED' */
+  Snpe_PerformanceProfile_t perfProfile = SNPE_PERFORMANCE_PROFILE_BALANCED;
+
   /* lambda function to handle tensor */
   auto handleTensor = [&] (const char *tensorName, GstTensorInfo *info,
                           Snpe_UserBufferMap_Handle_t bufferMapHandle,
@@ -283,7 +286,7 @@ ml_snpe_configure_instance (void *backend_private, const void *prop_)
   };
 
   auto parse_custom_prop = [&runtime, &outputstrListHandle, &inputTypeVec,
-                               &outputTypeVec] (const char *custom_prop) {
+                               &outputTypeVec, &perfProfile] (const char *custom_prop) {
     if (!custom_prop)
       return;
 
@@ -355,6 +358,36 @@ ml_snpe_configure_instance (void *backend_private, const void *prop_)
             }
           }
           g_strfreev (types);
+        } else if (g_ascii_strcasecmp (option[0], "PerfProfile") == 0) {
+          bool _valid = true;
+          if (g_ascii_strcasecmp (option[1], "BALANCED") == 0) {
+            perfProfile = SNPE_PERFORMANCE_PROFILE_BALANCED;
+          } else if (g_ascii_strcasecmp (option[1], "HIGH_PERFORMANCE") == 0) {
+            perfProfile = SNPE_PERFORMANCE_PROFILE_HIGH_PERFORMANCE;
+          } else if (g_ascii_strcasecmp (option[1], "POWER_SAVER") == 0) {
+            perfProfile = SNPE_PERFORMANCE_PROFILE_POWER_SAVER;
+          } else if (g_ascii_strcasecmp (option[1], "SYSTEM_SETTINGS") == 0) {
+            perfProfile = SNPE_PERFORMANCE_PROFILE_SYSTEM_SETTINGS;
+          } else if (g_ascii_strcasecmp (option[1], "SUSTAINED_HIGH_PERFORMANCE") == 0) {
+            perfProfile = SNPE_PERFORMANCE_PROFILE_SUSTAINED_HIGH_PERFORMANCE;
+          } else if (g_ascii_strcasecmp (option[1], "BURST") == 0) {
+            perfProfile = SNPE_PERFORMANCE_PROFILE_BURST;
+          } else if (g_ascii_strcasecmp (option[1], "LOW_POWER_SAVER") == 0) {
+            perfProfile = SNPE_PERFORMANCE_PROFILE_LOW_POWER_SAVER;
+          } else if (g_ascii_strcasecmp (option[1], "HIGH_POWER_SAVER") == 0) {
+            perfProfile = SNPE_PERFORMANCE_PROFILE_HIGH_POWER_SAVER;
+          } else if (g_ascii_strcasecmp (option[1], "LOW_BALANCED") == 0) {
+            perfProfile = SNPE_PERFORMANCE_PROFILE_LOW_BALANCED;
+          } else if (g_ascii_strcasecmp (option[1], "EXTREME_POWER_SAVER") == 0) {
+            perfProfile = SNPE_PERFORMANCE_PROFILE_EXTREME_POWER_SAVER;
+          } else {
+            _valid = false;
+            g_warning ("Unknown performance profile (%s), set BALANCED as default.",
+                options[op]);
+          }
+
+          if (_valid)
+            g_info ("Set performance profile to %s", option[1]);
         } else {
           g_warning ("Unknown option (%s).", options[op]);
         }
@@ -427,6 +460,10 @@ ml_snpe_configure_instance (void *backend_private, const void *prop_)
         throw std::runtime_error ("Failed to set output tensors");
       }
     }
+
+    /* Set Perfornamce Profile */
+    if (Snpe_SNPEBuilder_SetPerformanceProfile (snpebuilder_h, perfProfile) != SNPE_SUCCESS)
+      throw std::runtime_error ("Failed to set performance profile");
 
     snpe->snpe_h = Snpe_SNPEBuilder_Build (snpebuilder_h);
     if (!snpe->snpe_h)
