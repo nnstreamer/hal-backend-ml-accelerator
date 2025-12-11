@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        gbs_build_arch: [ x86_64, armv7l, aarch64, riscv64 ]
+        gbs_build_arch: [ x86_64, armv7l, aarch64 ] # TODO: recover riscv64 when proper tizen image is available
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-python@v5
