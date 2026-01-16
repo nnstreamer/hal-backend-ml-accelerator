@@ -22,7 +22,7 @@
 #include "hal-backend-ml-util.h"
 
 
-typedef struct _snpe_handle_s {
+struct snpe_handle_s {
   char *model_path;
   GstTensorsInfo inputInfo; /**< Input tensors metadata */
   GstTensorsInfo outputInfo; /**< Output tensors metadata */
@@ -31,44 +31,44 @@ typedef struct _snpe_handle_s {
   Snpe_UserBufferMap_Handle_t inputMap_h;
   Snpe_UserBufferMap_Handle_t outputMap_h;
   std::vector<Snpe_IUserBuffer_Handle_t> user_buffers;
-} snpe_handle_s;
 
-/** @brief Initialize handle. */
-static void
-_init_snpe_handle (snpe_handle_s *snpe)
-{
-  memset (snpe, 0, sizeof (snpe_handle_s));
+  snpe_handle_s ()
+      : model_path (nullptr), snpe_h (nullptr), inputMap_h (nullptr),
+        outputMap_h (nullptr)
+  {
+    gst_tensors_info_init (&inputInfo);
+    gst_tensors_info_init (&outputInfo);
+  }
 
-  gst_tensors_info_init (&snpe->inputInfo);
-  gst_tensors_info_init (&snpe->outputInfo);
-}
+  ~snpe_handle_s () { clear (); }
 
-/** @brief Close model and clear internal data in handle. */
-static void
-_clear_snpe_handle (snpe_handle_s *snpe)
-{
-  if (snpe->inputMap_h)
-    Snpe_UserBufferMap_Delete (snpe->inputMap_h);
+  void clear ()
+  {
+    if (inputMap_h)
+      Snpe_UserBufferMap_Delete (inputMap_h);
+    if (outputMap_h)
+      Snpe_UserBufferMap_Delete (outputMap_h);
+    for (auto &ub : user_buffers)
+      if (ub)
+        Snpe_IUserBuffer_Delete (ub);
 
-  if (snpe->outputMap_h)
-    Snpe_UserBufferMap_Delete (snpe->outputMap_h);
+    user_buffers.clear ();
 
-  for (auto &ub : snpe->user_buffers)
-    if (ub)
-      Snpe_IUserBuffer_Delete (ub);
+    if (snpe_h)
+      Snpe_SNPE_Delete (snpe_h);
 
-  snpe->user_buffers.clear ();
+    g_free (model_path);
 
-  if (snpe->snpe_h)
-    Snpe_SNPE_Delete (snpe->snpe_h);
+    gst_tensors_info_free (&inputInfo);
+    gst_tensors_info_free (&outputInfo);
 
-  g_free (snpe->model_path);
-
-  gst_tensors_info_free (&snpe->inputInfo);
-  gst_tensors_info_free (&snpe->outputInfo);
-
-  _init_snpe_handle (snpe);
-}
+    /* Reset to default */
+    model_path = nullptr;
+    snpe_h = nullptr;
+    inputMap_h = nullptr;
+    outputMap_h = nullptr;
+  }
+};
 
 /** @brief A helper function to trim whitespace from both ends of a string. */
 static std::string
@@ -126,10 +126,9 @@ set_environment_var_adsp ()
 static int
 ml_snpe_init (void **backend_private)
 {
-  snpe_handle_s *snpe = g_new0 (snpe_handle_s, 1);
+  snpe_handle_s *snpe = new snpe_handle_s ();
 
   set_environment_var_adsp ();
-  _init_snpe_handle (snpe);
 
   *backend_private = snpe;
   return HAL_ML_ERROR_NONE;
@@ -145,8 +144,7 @@ ml_snpe_deinit (void *backend_private)
     return HAL_ML_ERROR_INVALID_PARAMETER;
   }
 
-  _clear_snpe_handle (snpe);
-  g_free (snpe);
+  delete snpe;
 
   return HAL_ML_ERROR_NONE;
 }
@@ -164,7 +162,7 @@ ml_snpe_configure_instance (void *backend_private, const void *prop_)
 
   if (snpe->model_path) {
     g_critical ("[snpe backend] invalid state, clear old data.");
-    _clear_snpe_handle (snpe);
+    snpe->clear ();
   }
 
   snpe->model_path = g_strdup (prop->model_files[0]);
