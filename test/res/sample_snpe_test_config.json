@@ -1,0 +1,18 @@
+{
+
+    "metadata": {
+      "configParameters": [
+        {
+	  "fwname": "tizen-hal",
+	  "fw_opened": 0,
+	  "num_models": 1,
+	  "model_files": ["yolov8m_416_quantized.dlc"],
+	  "input_file": ["bus_416x416_float.raw"],
+	  "input_configured": 0,
+	  "output_configured": 0,
+	  "custom_properties": "backend:snpe,Runtime:DSP,InputType:TF8,OutputType:FLOAT32;FLOAT32,OutputTensor:/model.22/Sigmoid_output_0;/model.22/Mul_output_0"
+        }
+    
+      ]
+    }
+    }
