@@ -15,7 +15,6 @@ Source0:    %{name}-%{version}.tar.gz
 %define _module_name_dummypassthrough   hal-backend-ml-dummy-passthrough
 BuildRequires:  cmake
 BuildRequires:  pkgconfig(hal-rootstrap)
-BuildRequires: gtest-devel
 
 # For DA
 %if 0%{?_with_da_profile}
@@ -32,8 +31,11 @@ BuildRequires: gtest-devel
 
 %endif # For DA
 
+%if 0%{?build_test}
 %define build_tests 1
 %define _testdir %{_hal_bindir}/ml-accelerator/
+BuildRequires: gtest-devel
+%endif
 
 %description
 ML HAL backend drivers for various targets
