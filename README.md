@@ -1,6 +1,6 @@
 # HAL ML Accelerator Backends
 
-This document provides an overview of the available Machine Learning (ML) accelerator backends within this project. It details their purpose, configuration, and specific custom properties that can be used to tailor their behavior.
+This document provides an overview of the available Machine Learning (ML) accelerator backends within this project. It details their purpose, configuration, specific custom properties, and testing setup.
 
 ## 1. Vivante Backend (`ml-vivante`)
 
@@ -14,7 +14,7 @@ There are two options:
 1. model.nb + model.json
 2. model.nb + model.so
 
--   **Model Files (`prop->model_files`):**
+-   **Model Files (`prop->model_files`):** 
     -   `model_files[0]`: Path to the Vivante model file (e.g., `my_model.nb`). This file contains the neural network graph and weights.
     -   (Optional) `model_files[1]`: Path to the Vivante shared object file (e.g., `vnn_my_model.so`). This library provides functions like `vnn_CreateNeuralNetwork` and `vnn_ReleaseNeuralNetwork`.
 
@@ -22,11 +22,12 @@ Note that if the shared object file is not provided, the backend attempts to loa
 
 ### Custom Properties (`prop->custom_properties`)
 
--   **`json`**:
+-   **`json`**:   
     -   **Description:** Path to the JSON file for the given model file.
     -   **Key:** `json`
     -   **Value:** Path to the JSON file.
     -   **Example:** `json:/path/to/my_model.json`
+
     ```json
     // yolo-v8m.json
     {
@@ -78,31 +79,32 @@ Note that if the shared object file is not provided, the backend attempts to loa
 
 ### Configuration
 
--   **Model Files (`prop->model_files`):**
+-   **Model Files (`prop->model_files`):** 
     -   `model_files[0]`: Path to the SNPE model file (e.g., `my_model.dlc`).
 
 ### Custom Properties (`prop->custom_properties`)
 
 Custom properties for the SNPE backend are provided as a single string, with individual `key:value` pairs separated by commas.
+
 **Format:** `key1:value1,key2:value2,key3:value3a;value3b`
 
--   **`Runtime`**:
+-   **`Runtime`**:   
     -   **Description:** Specifies the preferred SNPE runtime target for model execution.
     -   **Key:** `Runtime`
-    -   **Value:**
+    -   **Value:**        
         -   `CPU`: Use CPU runtime.
         -   `GPU`: Use GPU runtime.
         -   `DSP`: Use DSP runtime.
         -   `NPU` or `AIP`: Use NPU/AIP runtime (specifically maps to `SNPE_RUNTIME_AIP_FIXED8_TF`).
     -   **Example:** `Runtime:DSP`
 
--   **`OutputTensor`**:
+-   **`OutputTensor`**:   
     -   **Description:** Specifies the names of the output tensors the application wishes to retrieve. If not provided, the backend uses all default output tensors defined in the model.
     -   **Key:** `OutputTensor`
     -   **Value:** A semicolon-separated list of output tensor names. Tensor names themselves can include colons.
     -   **Example:** `OutputTensor:detection_scores:0;detection_classes:0;raw_outputs/box_encodings`
 
--   **`OutputType`**:
+-   **`OutputType`**:   
     -   **Description:** Specifies the desired data types for the output tensors. The order of types in the list should correspond to the order of output tensors (either the default order or the order specified by the `OutputTensor` property).
     -   **Key:** `OutputType`
     -   **Value:** A semicolon-separated list of data types.
@@ -110,7 +112,7 @@ Custom properties for the SNPE backend are provided as a single string, with ind
         -   `TF8`: Output tensor data type will be 8-bit quantized (typically `uint8_t`).
     -   **Example:** `OutputType:FLOAT32;TF8` (assuming two output tensors, the first as float32, the second as TF8)
 
--   **`InputType`**:
+-   **`InputType`**:   
     -   **Description:** Specifies the data types for the input tensors. The order of types in the list should correspond to the order of input tensors as defined in the model.
     -   **Key:** `InputType`
     -   **Value:** A semicolon-separated list of data types.
@@ -121,3 +123,131 @@ Custom properties for the SNPE backend are provided as a single string, with ind
 ### Example `custom_properties` String for SNPE:
 
 `"Runtime:DSP,OutputTensor:my_output_tensor1;my_output_tensor2,OutputType:FLOAT32;FLOAT32,InputType:TF8"`
+
+### Input Data Files for Testing
+
+For testing purposes, you can specify raw input data files to load instead of using zero-filled buffers. This is configured in the JSON config file under the `configParameters` object:
+
+-   **`input_file`**:   
+    -   **Description:** Array of paths to raw binary input data files. One file per input tensor.
+    -   **Format:** Array of file paths
+    -   **Example:** `["sample_raw_0", "sample_raw_1"]` (for multi-input models)
+    -   **Example:** `["bus_416x416_float.raw"]` (for single-input models)
+
+**Example JSON configuration with input files:**
+```json
+{
+
+    "metadata": {
+      "configParameters": [
+        {
+  "fwname": "tizen-hal",
+  "fw_opened": 0,
+  "num_models": 1,
+  "model_files": ["inception-v3-99.nb"],
+  "input_file": ["pizza_3x299x299_uint8.raw"],
+  "input_configured": 0,
+  "output_configured": 0,
+  "custom_properties": "backend:vivante,json:inception-v3-99.json"
+        }
+    
+      ]
+    
+    }
+    
+    }
+    
+```
+
+The raw binary files should contain tensor data in the model's expected format (e.g., float32, uint8) with the exact size matching the input tensor dimensions. If input files are not provided, the test will use zero-filled buffers.
+
+## 3. Testing with GTest
+
+The project includes a comprehensive testing framework using Google Test (GTest) to validate backend functionality.
+
+### Test Structure
+
+The test setup consists of the following components:
+
+-   **`test/main.cpp`**: Main test entry point that initializes GTest and manages the global properties structure.
+-   **`test/hal_backend_ml_vivante_test.cpp`**: Test cases for the Vivante backend.
+-   **`test/hal_backend_ml_snpe_test.cpp`**: Test cases for the SNPE backend.
+-   **`test/hal_backend_ml_dummy_passthrough_test.cpp`**: Test cases for the dummy passthrough backend.
+-   **`test/hal_backend_ml_test_util.cpp`**: Utility functions used by tests.
+-   **`test/hal_backend_ml_test_util.h`**: Header file for test utilities.
+-   **`test/hal_backend_ml_test_wrapper.h`**: Wrapper functions for backend APIs.
+
+### Building Tests
+
+Tests are built when the corresponding backend is enabled and BUILD_TESTS option is set to ON:
+
+**For Vivante tests:**
+```bash
+cmake -DENABLE_VIVANTE=ON -DBUILD_TESTS=ON .
+make hal-backend-ml-vivante-test
+```
+
+**For SNPE tests:**
+```bash
+cmake -DENABLE_SNPE=ON -DBUILD_TESTS=ON .
+make hal-backend-ml-snpe-test
+```
+
+**For Dummy Passthrough tests:**
+```bash
+cmake -DENABLE_DUMMY=ON -DBUILD_TESTS=ON .
+make hal-backend-ml-dummy-passthrough-test
+```
+
+The test executables are linked against:
+-   `libgtest.so` - Google Test framework
+-   `libgtest_main.so` - Provides main() function for tests
+-   Backend-specific library (`libhal-backend-ml-vivante.so`, `libhal-backend-ml-snpe.so`, or `libhal-backend-ml-dummy-passthrough.so`)
+-   `pthread` - Threading support
+
+### Running Tests
+
+The test executables require a JSON configuration file path as a command-line argument:
+
+```bash
+# Run Vivante backend tests
+/hal/bin/ml-accelerator/hal-backend-ml-vivante-test /path/to/model_config.json
+
+# Run SNPE backend tests
+/hal/bin/ml-accelerator/hal-backend-ml-snpe-test /path/to/model_config.json
+
+# Run Dummy Passthrough backend tests
+/hal/bin/ml-accelerator/hal-backend-ml-dummy-passthrough-test /path/to/model_config.json
+```
+
+### Test Configuration
+
+The JSON configuration file should contain:
+-   Model file paths
+-   Input tensor specifications
+-   Output tensor specifications
+-   Quantization parameters
+-   Any backend-specific custom properties
+
+### Building Dependencies
+
+To build with GTest support, ensure the following dependencies are installed:
+
+**On Tizen systems:**
+```bash
+BuildRequires: gtest-devel
+```
+
+The build system automatically includes GTest support when building test executables via the CMake configuration in [`test/CMakeLists.txt`](./test/CMakeLists.txt).
+
+### Test Installations
+
+When building with tests enabled, test binaries are installed to:
+```
+/hal/bin/ml-accelerator/
+```
+
+For example:
+-   Vivante test: `/hal/bin/ml-accelerator/hal-backend-ml-vivante-test`
+-   SNPE test: `/hal/bin/ml-accelerator/hal-backend-ml-snpe-test`
+-   Dummy Passthrough test: `/hal/bin/ml-accelerator/hal-backend-ml-dummy-passthrough-test`

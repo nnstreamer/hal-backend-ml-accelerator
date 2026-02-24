@@ -9,8 +9,13 @@ Group:      Machine Learning/ML Framework
 License:    Apache-2.0
 Source0:    %{name}-%{version}.tar.gz
 
+%define _module_name      hal-backend-ml-accelerator
+%define _module_name_snpe     hal-backend-ml-snpe
+%define _module_name_vivante   hal-backend-ml-vivante
+%define _module_name_dummypassthrough   hal-backend-ml-dummy-passthrough
 BuildRequires:  cmake
 BuildRequires:  pkgconfig(hal-rootstrap)
+BuildRequires: gtest-devel
 
 # For DA
 %if 0%{?_with_da_profile}
@@ -27,6 +32,8 @@ BuildRequires:  pkgconfig(hal-rootstrap)
 
 %endif # For DA
 
+%define build_tests 1
+%define _testdir %{_hal_bindir}/ml-accelerator/
 
 %description
 ML HAL backend drivers for various targets
@@ -57,6 +64,28 @@ Summary:  hal-backend-ml-accelerator for snpe
 %define enable_snpe -DENABLE_SNPE=ON
 %endif
 
+%if 0%{?build_tests}
+
+%package halbackendtest
+Summary:    Test Binary for Hal backend
+Requires: %{name} = %{version}-%{release}
+%description halbackendtest
+Test Binary for hal-backend
+%define enable_tests -DBUILD_TESTS=ON
+
+%files halbackendtest
+%manifest packaging/hal-backend-ml-accelerator.manifest
+%if 0%{?dummy_support}
+%{_testdir}%{_module_name_dummypassthrough}-test
+%endif
+%if 0%{?vivante_support}
+%{_testdir}%{_module_name_vivante}-test
+%endif
+%if 0%{?snpe_support}
+%{_testdir}%{_module_name_snpe}-test
+%endif
+
+%endif
 
 %prep
 %setup -q
@@ -65,15 +94,19 @@ Summary:  hal-backend-ml-accelerator for snpe
 %cmake \
   -DCMAKE_HAL_LIBDIR_PREFIX=%{_hal_libdir} \
   -DCMAKE_HAL_LICENSEDIR_PREFIX=%{_hal_licensedir} \
+  %if 0%{?build_tests}
+    -DTEST_DIR=%{_testdir} \
+  %endif
   %{?enable_dummy} \
   %{?enable_vivante} \
   %{?enable_snpe} \
+  %{?enable_tests} \
   .
-
 make %{?_smp_mflags}
 
 %install
 %make_install
+
 
 %post
 /sbin/ldconfig
@@ -96,6 +129,7 @@ make %{?_smp_mflags}
 %endif
 
 %if 0%{?snpe_support}
+
 %files snpe
 %manifest packaging/hal-backend-ml-accelerator.manifest
 %license LICENSE
