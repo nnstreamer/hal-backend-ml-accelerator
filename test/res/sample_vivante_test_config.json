@@ -1,17 +1,16 @@
 {
-    "metadata": {
-      "configParameters": [
-        {
-	  "fwname": "tizen-hal",
-	  "fw_opened": 0,
-	  "num_models": 1,
-	  "model_files": ["inception-v3.nb"],
-	  "input_file": ["pizza_3x299x299_uint8.raw"],
-	  "input_configured": 0,
-	  "output_configured": 0,
-	  "custom_properties": "backend:vivante,json:inception-v3.json"
-        }
-      ]
-    }
-    
-    }
+  "metadata": {
+    "configParameters": [
+      {
+        "fwname": "tizen-hal",
+        "fw_opened": 0,
+        "num_models": 1,
+        "model_files": ["inception-v3.nb"],
+        "input_file": ["pizza_3x299x299_uint8.raw"],
+        "input_configured": 0,
+        "output_configured": 0,
+        "custom_properties": "backend:vivante,json:inception-v3.json"
+      }
+    ]
+  }
+}

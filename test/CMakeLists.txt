@@ -1,6 +1,6 @@
 # Check if we're in TEST mode
 IF(NOT DEFINED TEST_DIR)
-    SET(TEST_DIR "/hal/bin/ml-accelerator/")
+  SET(TEST_DIR "/hal/bin/ml-accelerator/")
 ENDIF()
 
 # Test installation directory
@@ -13,56 +13,42 @@ SET(PROJECT_NAME_FULL "hal-backend-ml-accelerator")
 SET(PROJECT_NAME_SNPE "hal-backend-ml-snpe")
 SET(PROJECT_NAME_VIVANTE "hal-backend-ml-vivante")
 SET(PROJECT_NAME_DUMMY "hal-backend-ml-dummy-passthrough")
-SET(UTIL_SRCS
-  ${PROJECT_SOURCE_DIR}/src/hal-backend-ml-util.cc
-)
+
 # Common test sources
 SET(COMMON_TEST_SRCS
-    main.cpp
-    hal_backend_ml_test_util.cc
+  main.cpp
+  hal_backend_ml_test_util.cc
 )
 
-IF(BUILD_TESTS)
 # Vivante tests
 IF(ENABLE_VIVANTE)
-
-ADD_EXECUTABLE(${VIVANTE_LIBRARY_NAME}-test 
-    ${COMMON_TEST_SRCS}
-    hal_backend_ml_vivante_test.cc
+ADD_EXECUTABLE(${VIVANTE_LIBRARY_NAME}-test
+  ${COMMON_TEST_SRCS}
+  ${CMAKE_CURRENT_SOURCE_DIR}/hal_backend_ml_vivante_test.cc
 )
 TARGET_LINK_LIBRARIES(${PROJECT_NAME_VIVANTE}-test libgtest.so libgtest_main.so -pthread)
-TARGET_LINK_LIBRARIES(${VIVANTE_LIBRARY_NAME}-test 
-    ${VIVANTE_LIBRARY_NAME}
-    ${TEST_PKGS_LDFLAGS} 
-    -lpthread
-)
+TARGET_LINK_LIBRARIES(${VIVANTE_LIBRARY_NAME}-test ${VIVANTE_LIBRARY_NAME} ${TEST_PKGS_LDFLAGS} -lpthread)
 INSTALL(TARGETS ${PROJECT_NAME_VIVANTE}-test RUNTIME DESTINATION ${TEST_INSTALL_DIR})
-
 ENDIF()
-
 
 # SNPE tests
 IF(ENABLE_SNPE)
-
-ADD_EXECUTABLE(${SNPE_LIBRARY_NAME}-test 
-    ${COMMON_TEST_SRCS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/hal_backend_ml_snpe_test.cc
+ADD_EXECUTABLE(${SNPE_LIBRARY_NAME}-test
+  ${COMMON_TEST_SRCS}
+  ${CMAKE_CURRENT_SOURCE_DIR}/hal_backend_ml_snpe_test.cc
 )
 TARGET_LINK_LIBRARIES(${PROJECT_NAME_SNPE}-test libgtest.so libgtest_main.so -pthread)
 TARGET_LINK_LIBRARIES(${PROJECT_NAME_SNPE}-test ${SNPE_LIBRARY_NAME} ${TEST_PKGS_LDFLAGS} -lpthread)
 INSTALL(TARGETS ${PROJECT_NAME_SNPE}-test RUNTIME DESTINATION ${TEST_INSTALL_DIR})
-
 ENDIF()
 
 # Dummy Passthrough tests
 IF(ENABLE_DUMMY)
-ADD_EXECUTABLE(${PROJECT_NAME_DUMMY}-test 
-    ${COMMON_TEST_SRCS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/hal_backend_ml_dummy_passthrough_test.cc
+ADD_EXECUTABLE(${PROJECT_NAME_DUMMY}-test
+  ${COMMON_TEST_SRCS}
+  ${CMAKE_CURRENT_SOURCE_DIR}/hal_backend_ml_dummy_passthrough_test.cc
 )
 TARGET_LINK_LIBRARIES(${PROJECT_NAME_DUMMY}-test libgtest.so libgtest_main.so -pthread)
 TARGET_LINK_LIBRARIES(${PROJECT_NAME_DUMMY}-test ${DUMMY_PASSTHROUGH_LIBRARY_NAME} ${TEST_PKGS_LDFLAGS} -lpthread)
 INSTALL(TARGETS ${PROJECT_NAME_DUMMY}-test RUNTIME DESTINATION ${TEST_INSTALL_DIR})
-ENDIF()
-
 ENDIF()
