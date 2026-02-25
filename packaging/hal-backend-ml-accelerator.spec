@@ -31,9 +31,7 @@ BuildRequires:  pkgconfig(hal-rootstrap)
 
 %endif # For DA
 
-%if 0%{?build_test}
-%define build_tests 1
-%define _testdir %{_hal_bindir}/ml-accelerator/
+%if 0%{?build_tests}
 BuildRequires: gtest-devel
 %endif
 
@@ -67,13 +65,14 @@ Summary:  hal-backend-ml-accelerator for snpe
 %endif
 
 %if 0%{?build_tests}
+%define _testdir %{_hal_bindir}/ml-accelerator/
+%define enable_tests -DBUILD_TESTS=ON -DTEST_DIR=%{_testdir}
 
 %package halbackendtest
 Summary:    Test Binary for Hal backend
 Requires: %{name} = %{version}-%{release}
 %description halbackendtest
 Test Binary for hal-backend
-%define enable_tests -DBUILD_TESTS=ON
 
 %files halbackendtest
 %manifest packaging/hal-backend-ml-accelerator.manifest
@@ -86,7 +85,8 @@ Test Binary for hal-backend
 %if 0%{?snpe_support}
 %{_testdir}%{_module_name_snpe}-test
 %endif
-
+%else
+%define enable_tests -DBUILD_TESTS=OFF
 %endif
 
 %prep
@@ -96,9 +96,6 @@ Test Binary for hal-backend
 %cmake \
   -DCMAKE_HAL_LIBDIR_PREFIX=%{_hal_libdir} \
   -DCMAKE_HAL_LICENSEDIR_PREFIX=%{_hal_licensedir} \
-  %if 0%{?build_tests}
-    -DTEST_DIR=%{_testdir} \
-  %endif
   %{?enable_dummy} \
   %{?enable_vivante} \
   %{?enable_snpe} \
@@ -108,7 +105,6 @@ make %{?_smp_mflags}
 
 %install
 %make_install
-
 
 %post
 /sbin/ldconfig
@@ -131,7 +127,6 @@ make %{?_smp_mflags}
 %endif
 
 %if 0%{?snpe_support}
-
 %files snpe
 %manifest packaging/hal-backend-ml-accelerator.manifest
 %license LICENSE

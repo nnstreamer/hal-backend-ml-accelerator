@@ -235,9 +235,9 @@ To build with GTest support, ensure the following dependencies are installed:
 
 **On Tizen systems:**
 
-You should set `build_test` as `1` in gbs to enable test:
+You should set `build_tests` as `1` in gbs to enable test:
 ```bash
-gbs build {your_gbs_options} --define "build_test 1"
+gbs build {your_gbs_options} --define "build_tests 1"
 ```
 
 The build system automatically includes GTest support when building test executables via the CMake configuration in [`test/CMakeLists.txt`](./test/CMakeLists.txt).
