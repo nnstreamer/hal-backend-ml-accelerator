@@ -500,7 +500,7 @@ ml_vivante_init (void **backend_private)
 static int
 ml_vivante_deinit (void *backend_private)
 {
-  ml_log_i ("[vivante] Deinitialise Vivante handle");
+  ml_log_i ("[vivante] Deinitialize Vivante handle");
 
   vivante_handle_s *vivante = (vivante_handle_s *) backend_private;
 

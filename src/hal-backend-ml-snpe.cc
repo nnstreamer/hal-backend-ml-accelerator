@@ -25,6 +25,7 @@
 
 struct snpe_handle_s {
   char *model_path;
+  char *custom_properties;
   GstTensorsInfo inputInfo; /**< Input tensors metadata */
   GstTensorsInfo outputInfo; /**< Output tensors metadata */
 
@@ -34,8 +35,8 @@ struct snpe_handle_s {
   std::vector<Snpe_IUserBuffer_Handle_t> user_buffers;
 
   snpe_handle_s ()
-      : model_path (nullptr), snpe_h (nullptr), inputMap_h (nullptr),
-        outputMap_h (nullptr)
+      : model_path (nullptr), custom_properties (nullptr), snpe_h (nullptr),
+        inputMap_h (nullptr), outputMap_h (nullptr)
   {
     gst_tensors_info_init (&inputInfo);
     gst_tensors_info_init (&outputInfo);
@@ -59,12 +60,14 @@ struct snpe_handle_s {
       Snpe_SNPE_Delete (snpe_h);
 
     g_free (model_path);
+    g_free (custom_properties);
 
     gst_tensors_info_free (&inputInfo);
     gst_tensors_info_free (&outputInfo);
 
     /* Reset to default */
     model_path = nullptr;
+    custom_properties = nullptr;
     snpe_h = nullptr;
     inputMap_h = nullptr;
     outputMap_h = nullptr;
@@ -142,7 +145,7 @@ ml_snpe_init (void **backend_private)
 static int
 ml_snpe_deinit (void *backend_private)
 {
-  ml_log_i ("[snpe] Deinitialise SNPE handle");
+  ml_log_i ("[snpe] Deinitialize SNPE handle");
 
   snpe_handle_s *snpe = (snpe_handle_s *) backend_private;
 
@@ -158,24 +161,25 @@ ml_snpe_deinit (void *backend_private)
 }
 
 static int
-ml_snpe_configure_instance (void *backend_private, const void *prop_)
+ml_snpe_load (snpe_handle_s *snpe, const char *model_path, const char *custom_properties)
 {
-  ml_log_i ("[snpe] Configure SNPE instance");
+  if (!snpe) {
+    ml_log_e ("[snpe] ml_snpe_load() called with invalid parameter.");
+    return HAL_ML_ERROR_INVALID_PARAMETER;
+  }
 
-  const GstTensorFilterProperties *prop = (const GstTensorFilterProperties *) prop_;
-  snpe_handle_s *snpe = (snpe_handle_s *) backend_private;
-
-  if (!snpe || !prop) {
-    ml_log_e ("[snpe] ml_snpe_configure_instance called with invalid backend_private");
+  if (!g_file_test (model_path, G_FILE_TEST_IS_REGULAR)) {
+    ml_log_e ("[snpe] ml_snpe_load() called with invalid model file (%s).", model_path);
     return HAL_ML_ERROR_INVALID_PARAMETER;
   }
 
   if (snpe->model_path) {
-    ml_log_e ("[snpe] invalid state, clear old data.");
+    ml_log_w ("[snpe] Invalid state, clear old data.");
     snpe->clear ();
   }
 
-  snpe->model_path = g_strdup (prop->model_files[0]);
+  snpe->model_path = g_strdup (model_path);
+  snpe->custom_properties = g_strdup (custom_properties);
 
   Snpe_DlVersion_Handle_t lib_version_h = NULL;
   Snpe_RuntimeList_Handle_t runtime_list_h = NULL;
@@ -424,7 +428,7 @@ ml_snpe_configure_instance (void *backend_private, const void *prop_)
     }
 
     /* parse custom properties */
-    parse_custom_prop (prop->custom_properties);
+    parse_custom_prop (custom_properties);
 
     /* Check the given Runtime is available */
     std::string runtime_str = std::string (Snpe_RuntimeList_RuntimeToString (runtime));
@@ -439,12 +443,6 @@ ml_snpe_configure_instance (void *backend_private, const void *prop_)
       throw std::runtime_error ("Failed to add given runtime to Snpe_RuntimeList");
 
     /* Load network (dlc file) */
-    if (!g_file_test (prop->model_files[0], G_FILE_TEST_IS_REGULAR)) {
-      const std::string err_msg
-          = "Given file " + (std::string) prop->model_files[0] + " is not valid";
-      throw std::invalid_argument (err_msg);
-    }
-
     container_h = Snpe_DlContainer_Open (snpe->model_path);
     if (!container_h)
       throw std::runtime_error (
@@ -528,6 +526,29 @@ ml_snpe_configure_instance (void *backend_private, const void *prop_)
     _clean_handles ();
     ml_log_e ("[snpe] %s", e.what ());
     return HAL_ML_ERROR_RUNTIME_ERROR;
+  }
+
+  return HAL_ML_ERROR_NONE;
+}
+
+static int
+ml_snpe_configure_instance (void *backend_private, const void *prop_)
+{
+  ml_log_i ("[snpe] Configure SNPE instance");
+
+  const GstTensorFilterProperties *prop = (const GstTensorFilterProperties *) prop_;
+  snpe_handle_s *snpe = (snpe_handle_s *) backend_private;
+  int status = HAL_ML_ERROR_NONE;
+
+  if (!snpe || !prop || !prop->model_files || !prop->model_files[0]) {
+    ml_log_e ("[snpe] ml_snpe_configure_instance called with invalid parameter.");
+    return HAL_ML_ERROR_INVALID_PARAMETER;
+  }
+
+  status = ml_snpe_load (snpe, prop->model_files[0], prop->custom_properties);
+  if (status != HAL_ML_ERROR_NONE) {
+    ml_log_e ("[snpe] Failed to configure SNPE instance.");
+    return status;
   }
 
   ml_log_i ("[snpe] Configured SNPE instance successfully");
