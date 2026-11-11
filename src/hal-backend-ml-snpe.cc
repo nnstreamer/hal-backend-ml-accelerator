@@ -1,7 +1,9 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 
+#include <cstring>
 #include <fstream>
 #include <glib.h>
+#include <malloc.h>
 #include <stdexcept>
 #include <vector>
 
@@ -623,10 +625,53 @@ ml_snpe_event_handler (void *backend_private, int ops_, void *data_)
   return HAL_ML_ERROR_NOT_SUPPORTED;
 }
 
+/**
+ * @brief Pin the glibc mmap threshold for processes that use SNPE.
+ *
+ * Every SNPE build spawns a new internal std::thread. On that thread the DSP
+ * stub allocates about 25 MB of staging buffers (hundreds of 128 KB - 2 MB
+ * chunks) and frees them again. With glibc's default dynamic mmap threshold,
+ * the first free raises the threshold to about 2 MB, so these buffers land in
+ * the thread's malloc arena instead of mmap. When the application also creates
+ * and destroys other threads per cycle (e.g., ML Service + GStreamer), the new
+ * SNPE thread is given a different arena almost every cycle, and each arena
+ * keeps its own ~30 MB of freed-but-retained pages. PSS then grows over a
+ * long load/unload loop although nothing is leaked (malloc_trim() reclaims it).
+ *
+ * Pinning M_MMAP_THRESHOLD to the glibc default (128 KB) also disables the
+ * dynamic adjustment, so these buffers are mmap()ed and returned to the kernel
+ * on free(). An explicit setting by the user or platform is respected.
+ */
+static void
+snpe_tune_allocator (void)
+{
+#ifdef M_MMAP_THRESHOLD
+  static gsize tuned = 0;
+
+  if (!g_once_init_enter (&tuned))
+    return;
+
+  const gchar *tunables = g_getenv ("GLIBC_TUNABLES");
+
+  if (g_getenv ("MALLOC_MMAP_THRESHOLD_")
+      || (tunables && strstr (tunables, "glibc.malloc.mmap_threshold"))) {
+    ml_log_i ("[snpe backend] Keep the user-defined malloc tunables.");
+  } else if (mallopt (M_MMAP_THRESHOLD, 128 * 1024) != 1) {
+    ml_log_w ("[snpe backend] Failed to set M_MMAP_THRESHOLD.");
+  } else {
+    ml_log_i ("[snpe backend] Set M_MMAP_THRESHOLD to 128 KB.");
+  }
+
+  g_once_init_leave (&tuned, 1);
+#endif
+}
+
 static int
 ml_snpe_hal_backend_init (void **data)
 {
   hal_backend_ml_funcs *funcs = NULL;
+
+  snpe_tune_allocator ();
 
   if (*data) {
     funcs = (hal_backend_ml_funcs *) *data;
